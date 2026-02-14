@@ -1,0 +1,7 @@
+FastAPI is a modern Python web framework.
+It uses type hints to validate request/response data and auto-generate OpenAPI docs.
+
+Common steps:
+- Define a FastAPI app instance.
+- Create GET/POST routes.
+- Run with uvicorn for local development.

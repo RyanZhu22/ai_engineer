@@ -1,0 +1,10 @@
+RAG (Retrieval-Augmented Generation) combines retrieval with generation.
+It first searches a knowledge base for relevant chunks, then feeds them into a language model.
+This helps improve factual accuracy and grounding.
+
+Typical pipeline:
+1) Split documents into chunks.
+2) Convert chunks to vectors (embeddings).
+3) Build a vector index.
+4) Retrieve top-k chunks for a query.
+5) Generate an answer using the retrieved context.
