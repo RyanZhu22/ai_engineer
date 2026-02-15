@@ -1,0 +1,11 @@
+id,query,expected_doc,expected_keywords,notes
+1,RAG 的核心流程是什么,rag_design.txt,检索;生成;Top-K,流程基础题
+2,为什么先做召回再优化提示词,rag_design.txt,召回;幻觉;优化,检索优先级题
+3,如何在 RAG 中设计提示词约束,prompt_strategy.txt,约束;输出格式;上下文,Prompt 设计题
+4,一个可靠 Prompt 模板通常包含什么,prompt_strategy.txt,角色设定;约束条件;输出结构,Prompt 结构题
+5,为什么固定输出结构能降低系统复杂度,prompt_strategy.txt,稳定解析;后处理,工程可维护性题
+6,AI Engineer 的核心能力分层有哪些,ai_engineer_scope.txt,数据与知识管理;服务化;质量评估,能力模型题
+7,两周学习策略建议是什么,ai_engineer_scope.txt,第一周;第二周;可运行系统;可评估,学习路径题
+8,为什么模型强也会出现幻觉,rag_design.txt,检索质量低;幻觉,风险认知题
+9,从软件工程师转 AI 工程师应优先补什么,ai_engineer_scope.txt,评估;迭代;闭环,转型重点题
+10,RAG 场景下如何降低模型自由度,prompt_strategy.txt,限制自由度;只基于上下文,控制策略题
