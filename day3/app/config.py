@@ -12,6 +12,8 @@ RAG_EMBED_MODEL = os.getenv("RAG_EMBED_MODEL", "sentence-transformers/all-MiniLM
 RAG_BATCH_SIZE = int(os.getenv("RAG_BATCH_SIZE", "32"))
 RAG_DEFAULT_TOP_K = int(os.getenv("RAG_DEFAULT_TOP_K", "3"))
 RAG_SOURCE_MAX_CHARS = int(os.getenv("RAG_SOURCE_MAX_CHARS", "220"))
+RAG_LOG_PATH = Path(os.getenv("RAG_LOG_PATH", str(BASE_DIR / "logs" / "rag_requests.jsonl")))
+RAG_METRICS_MAX_RECENT = int(os.getenv("RAG_METRICS_MAX_RECENT", "1000"))
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "echo").lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

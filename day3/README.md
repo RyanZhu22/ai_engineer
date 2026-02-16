@@ -28,7 +28,8 @@ day3/
 │  ├─ config.py      # 环境变量和默认配置
 │  ├─ retriever.py   # 向量检索器（加载、建索引、Top-K）
 │  ├─ llm.py         # LLM provider 和 RAG prompt
-│  └─ main.py        # FastAPI 路由（/health /search /ask）
+│  ├─ telemetry.py   # 请求日志与指标汇总
+│  └─ main.py        # FastAPI 路由（/health /search /ask /metrics/summary）
 ├─ data/
 │  └─ docs/
 │     ├─ rag_design.txt
@@ -100,6 +101,18 @@ curl -s http://127.0.0.1:8001/health
 - chunk 数 `chunk_count`
 - 当前 embedding 模型
 
+### 1.1) 指标汇总
+
+```bash
+curl -s http://127.0.0.1:8001/metrics/summary
+```
+
+你将看到：
+- 请求总量与错误率
+- 平均延迟与 P50/P95
+- 各接口请求分布
+- 高频 query 与高频来源文档
+
 ### 2) 只做检索（调试召回）
 
 ```bash
@@ -146,6 +159,8 @@ curl -s http://127.0.0.1:8001/ask \
 - `RAG_BATCH_SIZE`：向量化批大小
 - `RAG_DEFAULT_TOP_K`：默认召回数量
 - `RAG_SOURCE_MAX_CHARS`：返回来源文本的最大长度
+- `RAG_LOG_PATH`：请求日志文件路径（jsonl）
+- `RAG_METRICS_MAX_RECENT`：用于统计延迟分位数的最近样本数
 - `LLM_PROVIDER`：`echo` / `ollama` / `deepseek`
 
 ## 代码学习顺序（建议）
