@@ -14,6 +14,10 @@ RAG_DEFAULT_TOP_K = int(os.getenv("RAG_DEFAULT_TOP_K", "3"))
 RAG_SOURCE_MAX_CHARS = int(os.getenv("RAG_SOURCE_MAX_CHARS", "220"))
 RAG_LOG_PATH = Path(os.getenv("RAG_LOG_PATH", str(BASE_DIR / "logs" / "rag_requests.jsonl")))
 RAG_METRICS_MAX_RECENT = int(os.getenv("RAG_METRICS_MAX_RECENT", "1000"))
+RAG_PROMPT_STYLE_DEFAULT = os.getenv("RAG_PROMPT_STYLE_DEFAULT", "v1").lower()
+RAG_ASK_CACHE_ENABLED = os.getenv("RAG_ASK_CACHE_ENABLED", "false").lower() in {"1", "true", "yes"}
+RAG_ASK_CACHE_TTL_SEC = int(os.getenv("RAG_ASK_CACHE_TTL_SEC", "300"))
+RAG_ASK_CACHE_MAX_ITEMS = int(os.getenv("RAG_ASK_CACHE_MAX_ITEMS", "256"))
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "echo").lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

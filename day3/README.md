@@ -112,6 +112,7 @@ curl -s http://127.0.0.1:8001/metrics/summary
 - 平均延迟与 P50/P95
 - 各接口请求分布
 - 高频 query 与高频来源文档
+- `/ask` 缓存命中统计（checks/hits/hit_rate）
 
 ### 2) 只做检索（调试召回）
 
@@ -126,11 +127,14 @@ curl -s http://127.0.0.1:8001/search \
 ```bash
 curl -s http://127.0.0.1:8001/ask \
   -H "Content-Type: application/json" \
-  -d "{\"question\":\"如何降低 RAG 幻觉？\",\"top_k\":3}"
+  -d "{\"question\":\"如何降低 RAG 幻觉？\",\"top_k\":3,\"prompt_style\":\"v2\"}"
 ```
 
 返回包含：
 - `answer`：模型回答
+- `confidence`：回答置信度分级（high/medium/low）
+- `citations`：引用标签列表（`doc#chunk`）
+- `grounded`：是否给出可追溯引用
 - `sources`：命中的来源片段（文档名、chunk id、相似度）
 
 ## Provider 说明
@@ -161,6 +165,10 @@ curl -s http://127.0.0.1:8001/ask \
 - `RAG_SOURCE_MAX_CHARS`：返回来源文本的最大长度
 - `RAG_LOG_PATH`：请求日志文件路径（jsonl）
 - `RAG_METRICS_MAX_RECENT`：用于统计延迟分位数的最近样本数
+- `RAG_PROMPT_STYLE_DEFAULT`：默认 prompt 版本（`v1` / `v2`）
+- `RAG_ASK_CACHE_ENABLED`：是否开启 `/ask` 结果缓存
+- `RAG_ASK_CACHE_TTL_SEC`：缓存 TTL 秒数
+- `RAG_ASK_CACHE_MAX_ITEMS`：缓存最大条目数
 - `LLM_PROVIDER`：`echo` / `ollama` / `deepseek`
 
 ## 代码学习顺序（建议）
@@ -180,7 +188,7 @@ curl -s http://127.0.0.1:8001/ask \
 - [ ] 能成功启动 `uvicorn app.main:app --reload --port 8001`
 - [ ] `/health` 能返回文档与 chunk 统计
 - [ ] `/search` 返回的 top_k 结果与你的问题相关
-- [ ] `/ask` 返回 `answer + sources`
+- [ ] `/ask` 返回 `answer + confidence + citations + sources`
 - [ ] 知道如何切换 `echo -> ollama/deepseek`
 
 ## 常见问题

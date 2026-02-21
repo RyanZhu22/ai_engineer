@@ -1,0 +1,6 @@
+FastAPI 常见步骤：
+1) 创建 app 实例
+2) 定义路由
+3) 运行 uvicorn
+
+FastAPI 的优势是类型标注友好、开发速度快，且易于构建 AI API 服务。

@@ -1,0 +1,6 @@
+id,query,expected_tools,expected_keywords,notes
+1,请计算 23 * (7 + 3),calculator,230,纯计算
+2,RAG 的核心流程是什么,search_docs,检索;生成;Top-K,知识问答
+3,FastAPI 常见开发步骤有哪些,search_docs,app 实例;路由;uvicorn,知识问答
+4,请计算 100 / 4 并告诉我 RAG 为什么先检索,calculator|search_docs,25;先检索,多工具
+5,AI Engineer 核心能力有哪些,search_docs,数据;评测;服务化,知识问答

@@ -16,8 +16,20 @@ class LLMError(RuntimeError):
     pass
 
 
-def build_rag_prompt(question: str, context_blocks: List[str]) -> str:
+def build_rag_prompt(question: str, context_blocks: List[str], prompt_style: str) -> str:
     context = "\n\n".join(context_blocks)
+    if prompt_style == "v2":
+        return (
+            "你是一个严谨的RAG问答助手。只能依据给定上下文回答，不可臆测。\n"
+            "若上下文不足，必须明确写“根据当前检索内容无法确定”。\n"
+            "必须在回答末尾给出“引用”小节，格式为 [doc#chunk]。\n\n"
+            f"问题：{question}\n\n"
+            f"上下文：\n{context}\n\n"
+            "输出要求：\n"
+            "1) 答案：1-3句话，直接回答问题\n"
+            "2) 引用：列出使用到的来源标签（如 [rag_design.txt#chunk0]）"
+        )
+
     return (
         "你是一个严谨的AI助理。请只基于给定的上下文回答。\n"
         "如果上下文不足，请明确说“根据当前检索内容无法确定”。\n"
@@ -30,11 +42,11 @@ def build_rag_prompt(question: str, context_blocks: List[str]) -> str:
     )
 
 
-async def generate_with_context(question: str, context_blocks: List[str]) -> str:
+async def generate_with_context(question: str, context_blocks: List[str], prompt_style: str) -> str:
     if LLM_PROVIDER == "echo":
-        return _echo_generate(question, context_blocks)
+        return _echo_generate(question, context_blocks, prompt_style)
 
-    prompt = build_rag_prompt(question, context_blocks)
+    prompt = build_rag_prompt(question, context_blocks, prompt_style)
 
     if LLM_PROVIDER == "ollama":
         return await _ollama_generate(prompt)
@@ -45,7 +57,7 @@ async def generate_with_context(question: str, context_blocks: List[str]) -> str
     raise LLMError(f"Unsupported LLM_PROVIDER: {LLM_PROVIDER}")
 
 
-def _echo_generate(question: str, context_blocks: List[str]) -> str:
+def _echo_generate(question: str, context_blocks: List[str], prompt_style: str) -> str:
     if not context_blocks:
         return "未检索到可用上下文，无法回答。"
 
@@ -56,7 +68,7 @@ def _echo_generate(question: str, context_blocks: List[str]) -> str:
 
     joined = "；".join(preview)
     return (
-        f"[echo-rag] 问题: {question}\n"
+        f"[echo-rag:{prompt_style}] 问题: {question}\n"
         f"基于检索片段的示例回答: {joined}\n"
         "提示: 这是调试模式。设置 LLM_PROVIDER=ollama 或 deepseek 获取真实生成回答。"
     )

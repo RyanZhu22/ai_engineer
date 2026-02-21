@@ -28,9 +28,11 @@ class TelemetryEvent:
     status_code: int
     latency_ms: float
     provider: str
+    prompt_style: str
     query: str
     top_k: int
     source_docs: List[str]
+    cache_hit: bool
     error: str
 
 
@@ -46,7 +48,10 @@ class TelemetryStore:
         self.endpoint_errors: Counter[str] = Counter()
         self.query_counts: Counter[str] = Counter()
         self.source_doc_counts: Counter[str] = Counter()
+        self.prompt_style_counts: Counter[str] = Counter()
         self.recent_latencies: Deque[float] = deque(maxlen=max_recent)
+        self.total_cache_hits = 0
+        self.total_cache_checks = 0
 
     def record(
         self,
@@ -54,9 +59,11 @@ class TelemetryStore:
         status_code: int,
         latency_ms: float,
         provider: str,
+        prompt_style: str,
         query: str,
         top_k: int,
         source_docs: List[str] | None = None,
+        cache_hit: bool = False,
         error: str = "",
     ) -> None:
         source_docs = source_docs or []
@@ -68,9 +75,15 @@ class TelemetryStore:
             self.endpoint_errors[endpoint] += 1
         if query:
             self.query_counts[query.strip()] += 1
+        if prompt_style:
+            self.prompt_style_counts[prompt_style] += 1
         for doc in source_docs:
             self.source_doc_counts[doc] += 1
         self.recent_latencies.append(latency_ms)
+        if endpoint == "/ask":
+            self.total_cache_checks += 1
+            if cache_hit:
+                self.total_cache_hits += 1
 
         event = TelemetryEvent(
             ts=datetime.now(timezone.utc).isoformat(),
@@ -78,9 +91,11 @@ class TelemetryStore:
             status_code=status_code,
             latency_ms=round(latency_ms, 3),
             provider=provider,
+            prompt_style=prompt_style,
             query=query,
             top_k=top_k,
             source_docs=source_docs,
+            cache_hit=cache_hit,
             error=error,
         )
         with self.log_path.open("a", encoding="utf-8") as f:
@@ -112,6 +127,15 @@ class TelemetryStore:
             {"doc_name": d, "count": c}
             for d, c in self.source_doc_counts.most_common(5)
         ]
+        top_prompt_styles = [
+            {"prompt_style": s, "count": c}
+            for s, c in self.prompt_style_counts.most_common(5)
+        ]
+        cache_hit_rate = (
+            self.total_cache_hits / self.total_cache_checks
+            if self.total_cache_checks
+            else 0.0
+        )
 
         return {
             "log_path": str(self.log_path),
@@ -124,4 +148,10 @@ class TelemetryStore:
             "endpoint_stats": endpoint_stats,
             "top_queries": top_queries,
             "top_source_docs": top_source_docs,
+            "top_prompt_styles": top_prompt_styles,
+            "ask_cache": {
+                "checks": self.total_cache_checks,
+                "hits": self.total_cache_hits,
+                "hit_rate": round(cache_hit_rate, 4),
+            },
         }
