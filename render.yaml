@@ -1,0 +1,34 @@
+# Render Blueprint：一键创建 Web Service + PostgreSQL（免费层）
+# 使用方式：Render Dashboard → New + → Blueprint → 选择 ai_engineer 仓库
+# 部署后设置 LLM_API_KEY（在 Service → Environment 里填）
+
+services:
+  - type: web
+    name: llm-qa-service
+    runtime: docker
+    rootDir: projects/llm-qa-service
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: llmqa-db
+          property: connectionString
+      - key: LLM_BASE_URL
+        value: https://api.deepseek.com/v1
+      - key: LLM_MODEL
+        value: deepseek-chat
+      # 密钥在 Render 控制台手动填写（sync: false 表示不由蓝图管理）
+      - key: LLM_API_KEY
+        sync: false
+      - key: EMBEDDING_PROVIDER
+        value: local
+      - key: EMBEDDING_DIM
+        value: "512"
+      - key: APP_ENV
+        value: production
+
+databases:
+  - name: llmqa-db
+    plan: free

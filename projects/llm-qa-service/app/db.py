@@ -75,7 +75,11 @@ def _get_engine():
     global _engine
     if _engine is None:
         settings = get_settings()
-        _engine = create_async_engine(settings.database_url, echo=False)
+        url = settings.database_url
+        # 兼容 Render/Heroku 风格 URL（postgresql:// → postgresql+psycopg://）
+        if url.startswith("postgresql://") and "+psycopg" not in url:
+            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+        _engine = create_async_engine(url, echo=False)
     return _engine
 
 
