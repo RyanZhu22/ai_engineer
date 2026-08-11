@@ -247,6 +247,54 @@ bge-small-zh 检索 score 0.56-0.73 正确命中。**本地 embedding 是零成�
 
 ---
 
+## 4.1 Render 云端部署经验（08-11）
+
+### 部署方式：Blueprint（IaC）
+
+`render.yaml` 声明式定义 Web Service + PostgreSQL，网页点 Apply 自动创建：
+
+```yaml
+services:
+  - type: web
+    runtime: docker
+    rootDir: projects/llm-qa-service
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: llmqa-db, property: connectionString }
+      - key: LLM_API_KEY
+        sync: false          # 密钥不由蓝图管理，控制台手动填
+databases:
+  - name: llmqa-db
+    plan: free
+```
+
+### 踩坑 / 注意点
+
+1. **URL 格式兼容**：Render 给的是 `postgresql://...`，SQLAlchemy async 需要 `postgresql+psycopg://`，
+   db.py 里启动时自动替换。
+2. **secret 不进蓝图**：`sync: false` + 控制台填 LLM_API_KEY，避免 key 进 git。
+3. **免费层限制**：闲置 15 分钟休眠（冷启动 ~30s）；256MB 数据库；1 个实例 750h/月。
+4. **健康检查路径**：`/health` 必须返回 200，否则 Render 标记 unhealthy。
+
+### Baseline（云端）
+
+| 指标 | 值 |
+|------|-----|
+| 部署平台 | Render（免费层） |
+| 公网地址 | https://llm-qa-service.onrender.com |
+| 功能验证 | 上传文档 + RAG 问答 ✅ |
+
+### IaC 面试讲法
+
+> "我用 render.yaml 以声明式方式定义云端资源（Web 服务 + 托管 PostgreSQL），
+> 一键 Apply 自动创建。这本质是基础设施即代码（IaC）——
+> 同 docker-compose（本地）同源，企业级对应 Terraform/CloudFormation。
+> 优势：可版本控制、可复现、密钥不入库。"
+
+---
+
 ## 5. async SQLAlchemy 踩坑记录
 
 ### 坑 1：async 下 lazy load 抛 MissingGreenlet

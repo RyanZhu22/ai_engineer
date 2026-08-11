@@ -141,6 +141,13 @@ llm-qa-service/
     └── test_api.py          # 7 个测试（含 RAG）
 ```
 
+## 云端部署（Render 免费层）
+
+- 地址：**https://llm-qa-service.onrender.com**
+- 方式：`render.yaml` Blueprint（IaC）一键部署，Web Service + PostgreSQL 免费层
+- 环境变量：LLM key 在 Render 控制台填写（`sync: false`，不入 git）
+- 免费层注意：闲置 15 分钟休眠，冷启动 ~30s
+
 ## 面试知识点（下次面试可讲）
 
 1. **为什么用环境变量存 API Key？** → secret 不进代码库，可轮换，多环境隔离
