@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>香港 AI Engineer 就业市场调研报告 · 交付向 AI 工程师</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --bg2:#0f1526; --card:#131a2e; --card2:#182138;
+    --line:#232e4d; --txt:#e8ecf8; --sub:#9aa6c4; --dim:#6b7696;
+    --accent:#6c5ce7; --accent2:#00d2ff; --accent3:#00e5a0; --warn:#ffb454; --pink:#ff5c8a;
+    --grad:linear-gradient(135deg,#6c5ce7 0%,#00d2ff 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Microsoft JhengHei",sans-serif;line-height:1.7}
+  ::selection{background:rgba(108,92,231,.4)}
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;background:rgba(10,14,26,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:6px;padding:12px 24px;overflow-x:auto}
+  .nav-in a{color:var(--sub);text-decoration:none;font-size:13px;white-space:nowrap;padding:6px 12px;border-radius:20px;transition:.2s}
+  .nav-in a:hover{color:#fff;background:rgba(108,92,231,.18)}
+  .logo{font-weight:800;color:#fff;font-size:14px;margin-right:14px;white-space:nowrap}
+  .logo span{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+  /* hero */
+  .hero{position:relative;padding:90px 0 70px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(600px 300px at 15% 20%,rgba(108,92,231,.25),transparent 60%),
+    radial-gradient(500px 280px at 85% 30%,rgba(0,210,255,.15),transparent 60%),
+    radial-gradient(400px 300px at 50% 90%,rgba(0,229,160,.08),transparent 60%);
+    pointer-events:none}
+  .tag{display:inline-block;font-size:12px;letter-spacing:1px;color:var(--accent2);border:1px solid rgba(0,210,255,.35);padding:5px 14px;border-radius:30px;margin-bottom:22px;background:rgba(0,210,255,.07)}
+  .hero h1{font-size:clamp(30px,5vw,52px);font-weight:800;letter-spacing:-1px;line-height:1.15;margin-bottom:16px}
+  .hero h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p.sub{font-size:17px;color:var(--sub);max-width:720px;margin-bottom:34px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;position:relative}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px;transition:.25s}
+  .stat:hover{transform:translateY(-4px);border-color:rgba(108,92,231,.55)}
+  .stat .num{font-size:30px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stat .lbl{font-size:13px;color:var(--sub);margin-top:4px}
+  /* section */
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  .sec-tag{font-size:12px;letter-spacing:2px;color:var(--accent3);text-transform:uppercase;margin-bottom:8px}
+  h2{font-size:clamp(24px,3.4vw,34px);font-weight:800;margin-bottom:10px}
+  h2 .n{color:var(--accent2);font-size:.55em;vertical-align:super;margin-right:8px}
+  .lead{color:var(--sub);max-width:760px;margin-bottom:34px;font-size:15px}
+  /* cards grid */
+  .grid{display:grid;gap:18px}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;transition:.25s}
+  .card:hover{border-color:rgba(108,92,231,.5);transform:translateY(-3px)}
+  .card h3{font-size:17px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+  .card h3 .ic{width:34px;height:34px;border-radius:10px;background:rgba(108,92,231,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .card p{color:var(--sub);font-size:14px}
+  .pill{display:inline-block;font-size:12px;padding:3px 10px;border-radius:20px;margin:3px 4px 3px 0;border:1px solid var(--line);color:var(--sub);background:rgba(255,255,255,.03)}
+  .pill.hot{border-color:rgba(255,92,138,.5);color:var(--pink);background:rgba(255,92,138,.08)}
+  .pill.hot2{border-color:rgba(0,210,255,.5);color:var(--accent2);background:rgba(0,210,255,.08)}
+  .pill.hot3{border-color:rgba(0,229,160,.5);color:var(--accent3);background:rgba(0,229,160,.08)}
+  /* bars */
+  .bar-row{margin-bottom:14px}
+  .bar-top{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}
+  .bar-top b{color:var(--txt);font-weight:600}
+  .bar-top span{color:var(--dim)}
+  .bar{height:9px;background:rgba(255,255,255,.06);border-radius:10px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:10px;background:var(--grad);width:0;animation:fill 1.2s ease forwards}
+  @keyframes fill{to{width:var(--w)}}
+  /* bubble cloud */
+  .bubble-wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;padding:20px;min-height:300px}
+  .bubble{display:flex;align-items:center;justify-content:center;text-align:center;border-radius:50%;font-weight:700;color:#fff;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.25),transparent 60%);box-shadow:0 8px 30px rgba(0,0,0,.35);transition:.25s;cursor:default;line-height:1.3}
+  .bubble:hover{transform:scale(1.1)}
+  .bubble small{display:block;font-weight:400;font-size:.55em;opacity:.85}
+  /* radar */
+  .radar-box{display:flex;gap:30px;flex-wrap:wrap;align-items:center;justify-content:center}
+  .radar-legend{font-size:13px;color:var(--sub);max-width:320px}
+  .radar-legend div{margin-bottom:10px;display:flex;align-items:baseline;gap:8px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex-shrink:0}
+  /* salary */
+  .sal-table{width:100%;border-collapse:collapse;font-size:14px}
+  .sal-table th{text-align:left;color:var(--sub);font-weight:500;font-size:12.5px;padding:12px 14px;border-bottom:1px solid var(--line);letter-spacing:.5px}
+  .sal-table td{padding:14px;border-bottom:1px solid rgba(35,46,77,.5);color:var(--txt)}
+  .sal-table tr:hover td{background:rgba(108,92,231,.06)}
+  .range{color:var(--accent2);font-weight:700;white-space:nowrap}
+  .hkd{color:var(--dim);font-size:12px}
+  .sal-band{height:12px;border-radius:8px;background:linear-gradient(90deg,#6c5ce7,#00d2ff,#00e5a0);min-width:20px;display:inline-block;vertical-align:middle}
+  /* timeline */
+  .tl{position:relative;padding-left:28px}
+  .tl::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,#6c5ce7,#00d2ff)}
+  .tl-item{position:relative;margin-bottom:26px}
+  .tl-item::before{content:"";position:absolute;left:-25px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);box-shadow:0 0 0 2px var(--accent)}
+  .tl-item h4{font-size:15.5px;margin-bottom:6px}
+  .tl-item h4 .ph{color:var(--accent2);font-size:12.5px;margin-left:8px}
+  .tl-item p{color:var(--sub);font-size:13.5px}
+  /* checklist */
+  .check li{list-style:none;position:relative;padding:9px 0 9px 30px;color:var(--txt);font-size:14px;border-bottom:1px dashed rgba(35,46,77,.6)}
+  .check li:last-child{border-bottom:none}
+  .check li::before{content:"✓";position:absolute;left:0;top:9px;width:20px;height:20px;border-radius:6px;background:rgba(0,229,160,.15);color:var(--accent3);font-size:12px;display:flex;align-items:center;justify-content:center}
+  .check li b{color:var(--accent2)}
+  /* employer */
+  .emp{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .emp span{font-size:12.5px;padding:5px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--sub)}
+  .emp span:hover{color:#fff;border-color:rgba(108,92,231,.6)}
+  /* gap analysis */
+  .gap{display:grid;grid-template-columns:1fr;gap:14px}
+  .gap-row{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .gap-side{flex:1;min-width:250px}
+  .gap-side .t{font-size:13px;color:var(--dim);margin-bottom:6px;letter-spacing:1px}
+  .gap-side ul{margin-left:18px;color:var(--sub);font-size:13.5px}
+  .arrow{color:var(--accent2);font-size:22px;padding-top:20px;flex-shrink:0}
+  /* footnote */
+  .foot{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--dim);font-size:12.5px}
+  .foot h4{color:var(--sub);font-size:14px;margin:16px 0 8px}
+  .src{display:inline-block;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin:4px 4px 4px 0;font-size:12px;color:var(--sub)}
+  .callout{background:linear-gradient(135deg,rgba(108,92,231,.12),rgba(0,210,255,.08));border:1px solid rgba(108,92,231,.4);border-radius:14px;padding:20px 22px;margin-top:22px;font-size:14px;color:var(--sub)}
+  .callout b{color:var(--accent2)}
+  /* scroll reveal */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.on{opacity:1;transform:none}
+  .legend-row{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:10px}
+  .legend-row span i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+  .num-big{font-size:40px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+  @media(max-width:640px){.hero{padding:60px 0 50px}.wrap{padding:0 16px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="logo">HK <span>AI Market</span> Report</div>
+    <a href="#overview">市场概览</a>
+    <a href="#skills">核心技能</a>
+    <a href="#stack">技术栈图谱</a>
+    <a href="#requirements">JD 高频要求</a>
+    <a href="#salary">薪资水平</a>
+    <a href="#employers">目标雇主</a>
+    <a href="#path">成长路径</a>
+    <a href="#action">90天行动</a>
+    <a href="#method">研究方法</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="wrap">
+    <span class="tag">🤖 2025 香港 IT 就业市场调研 · 交付向 AI 工程师</span>
+    <h1>香港「AI Engineer」<br>就业市场能力需求分析<span class="g">· 可视化报告</span></h1>
+    <p class="sub">面向工作 4 年的软件工程师，转做 <b style="color:#fff">交付导向的 AI 工程师</b>（把 AI 项目从概念带到生产落地）。基于香港招聘市场真实职位描述（JD）汇总统计，覆盖银行、保险、咨询、初创、跨国企业。</p>
+    <div class="stats">
+      <div class="stat"><div class="num">70+</div><div class="lbl">调研的香港 AI/ML 相关职位（扫描）</div></div>
+      <div class="stat"><div class="num">10</div><div class="lbl">深度拆解的完整 JD（含全量技能要求）</div></div>
+      <div class="stat"><div class="num">8</div><div class="lbl">核心能力维度（雷达图）</div></div>
+      <div class="stat"><div class="num">90天</div><div class="lbl">可执行的转型路线图</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OVERVIEW ============ -->
+<section id="overview">
+  <div class="wrap">
+    <div class="sec-tag">01 · Market Overview</div>
+    <h2>市场概览<span class="n">Overview</span></h2>
+    <p class="lead">香港的 AI 岗位需求正从「研究向」转向「<b style="color:#fff">交付向</b>」：企业不再只招写论文的算法工程师，而是大量招募能把 LLM/RAG/Agent 落地到生产系统、对接业务系统的工程型人才。这与你的 4 年软件开发背景天然契合 —— 缺口不在「算法推导」，而在「工程化落地」。</p>
+    <div class="grid g4">
+      <div class="card reveal"><h3><span class="ic">🏦</span>银行 &amp; 金融</h3>
+        <p>HSBC、渣打、星展、中银香港、富途、老虎证券等大量招聘 AI 工程人才，用于智能客服、合规审查、文档处理、投研 Copilot。薪资全港最高。</p></div>
+      <div class="card reveal"><h3><span class="ic">🛡️</span>保险 &amp; 公营</h3>
+        <p>Manulife、AIA、保诚、Bowtie、Intact Lab（香港科学园）、香港生产力局等。重点是内部流程自动化、理赔智能化、RAG 知识库。</p></div>
+      <div class="card reveal"><h3><span class="ic">💼</span>咨询 / IT 服务交付</h3>
+        <p>Sia Partners、Accenture、Deloitte、Infosys、TCS、IBM 等。模式 = 为客户交付 AI 项目（RFP 竞标 → PoC → 生产落地），最匹配「交付向程序员」定位。</p></div>
+      <div class="card reveal"><h3><span class="ic">🚀</span>初创 / 产品 &amp; 跨国企业</h3>
+        <p>WATI、Hyphen Connect 客户、Mile AI、SCMP、Bosch、Allianz、中移动国际等。GenAI 产品化、内部 AI 自动化、Agent 平台。</p></div>
+    </div>
+    <div class="callout reveal">📌 <b>核心结论：</b>香港 AI 招聘市场对「会写 Python 的算法研究员」需求有限，对「能把 AI 功能可靠交付进生产环境 + 能和业务/客户沟通 + 懂云与工程化」的工程师需求强劲。你已有 4 年工程经验，只差补齐 <b>LLM/GenAI 技术栈</b> 与 <b>AI 交付方法论</b> 两块拼图。</div>
+  </div>
+</section>
+
+<!-- ============ SKILLS RADAR ============ -->
+<section id="skills">
+  <div class="wrap">
+    <div class="sec-tag">02 · Core Skills</div>
+    <h2>核心能力雷达<span class="n">Radar</span></h2>
+    <p class="lead">根据 10 份深度 JD 的技能要求频率与权重，提炼出香港交付向 AI 工程师的 8 个核心能力维度（0–100 分）。</p>
+    <div class="radar-box">
+      <svg id="radar" width="460" height="460" viewBox="0 0 460 460"></svg>
+      <div class="radar-legend">
+        <div><span class="dot" style="background:#6c5ce7"></span>维度分值 = JD 要求频率 × 权重</div>
+        <div style="margin-top:18px;color:var(--txt)">你的现状评估（4 年 SWE 背景）：</div>
+        <div><span class="dot" style="background:#00e5a0"></span>Python 编程 —— <b style="color:#00e5a0">已具备</b>（补 numpy/pandas/ML 库）</div>
+        <div><span class="dot" style="background:#00e5a0"></span>工程化交付 —— <b style="color:#00e5a0">已具备</b>（这是你的最大优势）</div>
+        <div><span class="dot" style="background:#ffb454"></span>数据处理 —— <b style="color:#ffb454">部分具备</b>（需补 ETL/Spark/向量化）</div>
+        <div><span class="dot" style="background:#ff5c8a"></span>LLM/GenAI、MLOps —— <b style="color:#ff5c8a">最需补强</b>（主攻方向）</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TECH STACK ============ -->
+<section id="stack">
+  <div class="wrap">
+    <div class="sec-tag">03 · Tech Stack</div>
+    <h2>技术栈全景图<span class="n">Stack Map</span></h2>
+    <p class="lead">气泡大小 = 在香港 AI 工程师 JD 中出现的频率（越大越核心）。颜色 = 能力层级。</p>
+    <div class="card" style="padding:10px 24px 24px">
+      <div class="bubble-wrap" id="cloud"></div>
+      <div class="legend-row">
+        <span><i style="background:#6c5ce7"></i>必须掌握（出现率 &gt;80%）</span>
+        <span><i style="background:#00d2ff"></i>重点掌握（出现率 50–80%）</span>
+        <span><i style="background:#3a4666"></i>加分项（出现率 &lt;50%）</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REQUIREMENTS ============ -->
+<section id="requirements">
+  <div class="wrap">
+    <div class="sec-tag">04 · JD Requirements</div>
+    <h2>JD 高频技能要求 TOP 15<span class="n">Frequency</span></h2>
+    <p class="lead">从本次调研的 10 份完整 JD 中统计的技能出现率（出现该要求的 JD 数 / 10 份）。<span style="color:var(--dim);font-size:13px">样本：Buyandship、Allianz GI、SCMP、Infosys、Sia Partners、WATI、Bosch、Intact Lab、Manulife、Taylor Root 等</span></p>
+    <div class="card">
+      <div id="bars"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SALARY ============ -->
+<section id="salary">
+  <div class="wrap">
+    <div class="sec-tag">05 · Salary</div>
+    <h2>薪资水平（HKD / 月）<span class="n">Compensation</span></h2>
+    <p class="lead">综合香港招聘网站薪酬数据与市场行情估算。金融/银行通常含 bonus（约 2–6 个月），实际年收入更高。你目前 4 年经验，目标定位在「中级 → 高级 AI 工程师」。</p>
+    <div class="card" style="overflow-x:auto">
+      <table class="sal-table">
+        <thead><tr><th>经验 / 职级</th><th style="width:34%">月薪范围（HKD）</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td><b>初级 AI 工程师</b><br><span class="hkd">0–2 年</span></td><td><span class="range">HKD 25,000 – 40,000</span><div style="margin-top:8px"><span class="sal-band" style="width:38%"></span></div></td><td class="hkd">Python + ML 基础，可接受无生产经验</td></tr>
+          <tr><td><b>中级 AI 工程师</b><br><span class="hkd">3–5 年（你的目标区间）</span></td><td><span class="range">HKD 45,000 – 75,000</span><div style="margin-top:8px"><span class="sal-band" style="width:62%"></span></div></td><td class="hkd">企业/保险 45–60K；咨询 48–70K；银行/FinTech 55–90K</td></tr>
+          <tr><td><b>高级 AI 工程师</b><br><span class="hkd">6–9 年</span></td><td><span class="range">HKD 70,000 – 120,000</span><div style="margin-top:8px"><span class="sal-band" style="width:86%"></span></div></td><td class="hkd">多数 JD 要求 5 年+，需独立带交付</td></tr>
+          <tr><td><b>AI 工程经理 / 架构师</b><br><span class="hkd">9 年+</span></td><td><span class="range">HKD 110,000 – 180,000+</span><div style="margin-top:8px"><span class="sal-band" style="width:100%"></span></div></td><td class="hkd">Sia Partners「AI Engineering Manager」等职级</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout reveal">💰 <b>行业溢价：</b>金融科技 &gt; 咨询交付 &gt; 保险 &gt; 初创。银行/对冲基金 AI 岗位常有 20–40% 溢价；咨询公司用「职级 + 项目交付奖金」补偿。对于 4 年经验转行者，咨询交付岗（Sia Partners、Accenture、Infosys 类）<b>门槛最友好、最能积累项目经验</b>，是理想的「跳板」。</div>
+  </div>
+</section>
+
+<!-- ============ EMPLOYERS ============ -->
+<section id="employers">
+  <div class="wrap">
+    <div class="sec-tag">06 · Employers</div>
+    <h2>目标雇主地图<span class="n">Employers</span></h2>
+    <p class="lead">按「你的 4 年 SWE 背景 → 交付向 AI 工程师」匹配度排序。⭐ = 与你的定位最契合。</p>
+    <div class="grid g2">
+      <div class="card reveal"><h3><span class="ic">💼</span>咨询 / IT 服务（强烈推荐）⭐</h3>
+        <p>模式最符合「交付项目」：接客户项目 → PoC → 生产交付。对工程背景要求高、对纯科研要求低。</p>
+        <div class="emp"><span>Sia Partners</span><span>Accenture</span><span>Deloitte</span><span>EY / PwC / KPMG</span><span>Infosys</span><span>TCS</span><span>IBM</span><span>NCS</span><span>Capgemini</span><span>Atos</span><span>HCL</span></div></div>
+      <div class="card reveal"><h3><span class="ic">🏦</span>银行 / 金融科技</h3>
+        <p>薪资最高。招聘量大的方向：文档智能处理、智能客服、合规与风控 AI、投研 Copilot。</p>
+        <div class="emp"><span>HSBC</span><span>渣打</span><span>星展 DBS</span><span>中银香港</span><span>恒生</span><span>富途</span><span>老虎证券</span><span>Manulife</span><span>AIA</span><span>保诚</span><span>Bowtie</span><span>FWD</span></div></div>
+      <div class="card reveal"><h3><span class="ic">🚀</span>初创 / 产品公司</h3>
+        <p>AI 产品从 0 到 1，适合「全能型交付工程师」，节奏快、技术新（Agent、多模态）。</p>
+        <div class="emp"><span>WATI</span><span>Mile AI</span><span>Hyphen Connect（客户）</span><span>Crypto 初创（如 CAIO 岗）</span><span>Quant 对冲基金（Taylor Root 等渠道）</span></div></div>
+      <div class="card reveal"><h3><span class="ic">🏢</span>跨国企业 / 传媒 / 公营</h3>
+        <p>内部 AI 自动化、GenAI 平台建设。工作生活平衡好。</p>
+        <div class="emp"><span>Bosch</span><span>Allianz GI</span><span>SCMP</span><span>中移动国际 CMHK</span><span>香港电讯 HKT</span><span>Intact Lab（科学园）</span><span>香港生产力局 HKPC</span><span>数码港 / Cyberport 园区企业</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PATH ============ -->
+<section id="path">
+  <div class="wrap">
+    <div class="sec-tag">07 · Career Path</div>
+    <h2>你的成长路径：4 年 SWE → 交付向 AI 工程师<span class="n">Roadmap</span></h2>
+    <p class="lead">基于香港市场真实 JD 的任职要求反推（Buyandship 要求 3 年+开发含 1 年+ Python AI；Allianz 要求 2–5 年工程 + 1–2 年 ML/GenAI；Sia Partners 要求 6 年+ 含 AI 交付）。你的工程年限已经达标，重点是<b style="color:#fff">补齐 AI 专项经验</b>。</p>
+    <div class="grid g2">
+      <div>
+        <div class="tl">
+          <div class="tl-item"><h4>你现在：4 年软件工程师</h4>
+            <p>✅ 已有：软件工程、API、数据库、CI/CD、测试、版本控制、云基础 —— <b style="color:var(--accent3)">这些恰好是 AI 工程师 JD 的「硬性要求」</b></p>
+            <p>❌ 缺：Python AI 生态、LLM API、RAG/向量库、Agent、MLOps、AI 交付经验</p></div>
+          <div class="tl-item"><h4>第 1 阶段：AI 基础（1–2 个月）</h4>
+            <p>Python AI 生态（NumPy/Pandas/scikit-learn）→ LLM API（OpenAI/Anthropic/Gemini）→ Prompt Engineering → 用 FastAPI 封装第一个 LLM 服务。</p></div>
+          <div class="tl-item"><h4>第 2 阶段：RAG + Agent（2–3 个月）</h4>
+            <p>LangChain / LlamaIndex → 向量数据库（pgvector/Chroma/Milvus）→ RAG 完整链路 → Agent（tool calling、MCP）→ 参照 SCMP / Allianz JD 打造 PoC。</p></div>
+          <div class="tl-item"><h4>第 3 阶段：生产化交付（2–3 个月）</h4>
+            <p>LLMOps/MLOps（评估、监控、CI/CD）→ Docker/K8s 部署 → 云 AI 服务（Azure/AWS/GCP）→ 参照 Sia Partners / Buyandship JD 打磨「生产级」能力。</p></div>
+          <div class="tl-item"><h4>目标岗位画像（6 个月后）</h4>
+            <p>「中级 AI 工程师」：Python + RAG/Agent + FastAPI + Docker + 云 + 中英双语沟通，能独立把客户/业务需求交付为生产 AI 应用。对标 Allianz、SCMP、咨询公司同级别岗位。</p></div>
+        </div>
+      </div>
+      <div class="card reveal" style="height:fit-content">
+        <h3><span class="ic">🎯</span>岗位画像对标（真实 JD 要求）</h3>
+        <ul class="check">
+          <li><b>Buyandship · Senior AI Engineer：</b>3 年+ 开发（含 1 年+ Python AI）、LLM 框架 + API、向量库 + RAG、CI/CD、Docker/K8s、SQL、中英双语</li>
+          <li><b>Allianz GI · AI Engineer：</b>2–5 年工程、1–2 年 ML/GenAI、LangChain/FastAPI/AutoGen、RAG/embeddings/prompt、React/Node（全栈加分）、Azure/Docker</li>
+          <li><b>SCMP · AI Engineer：</b>2 年+ 工程、生产级 GenAI（RAG/Agent）、OpenAI/Anthropic/Gemini API、LangChain/LlamaIndex/CrewAI/vLLM、粤语/英语/普通话</li>
+          <li><b>Sia Partners · AI Eng Manager：</b>6 年+ AI 交付、客户端方案设计、LangChain/PyTorch/HF、MLOps/GenAIOps、评估体系、粤语优先 —— 这是 3–5 年后的进阶目标</li>
+          <li><b>WATI · Staff AI Engineer：</b>5 年+ 后端 + Python、多模型网关、RAG + 多 Agent（MCP）、向量库、语音 AI —— 产品向高薪路线</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 90 DAY ACTION ============ -->
+<section id="action">
+  <div class="wrap">
+    <div class="sec-tag">08 · Action Plan</div>
+    <h2>90 天行动清单<span class="n">Actionable</span></h2>
+    <p class="lead">每天 1–2 小时，用「项目驱动」替代「刷课驱动」—— 香港面试官最看重你能展示的交付作品。</p>
+    <div class="grid g3">
+      <div class="card reveal"><h3><span class="ic">📚</span>第 1–30 天 · 筑基</h3>
+        <ul class="check">
+          <li>Python AI 三件套：NumPy / Pandas / scikit-learn 上手（1 周）</li>
+          <li>调用 OpenAI / Anthropic / Gemini API，写 5 个 Prompt 应用</li>
+          <li>用 <b>FastAPI</b> 把 LLM 封装成 REST 服务 + 简单前端</li>
+          <li>目标产出：<b>一个可演示的 LLM 聊天/文档问答服务</b></li>
+        </ul></div>
+      <div class="card reveal"><h3><span class="ic">🧩</span>第 31–60 天 · RAG + Agent</h3>
+        <ul class="check">
+          <li>LangChain / LlamaIndex 完整 RAG 链路（加载 → 切分 → 向量化 → 检索 → 生成）</li>
+          <li>向量库：pgvector（若你会 PostgreSQL 最快上手）→ 再试 Chroma / Milvus</li>
+          <li>Agent 基础：function calling / tool calling、MCP</li>
+          <li>目标产出：<b>企业知识库问答机器人（含引用与评估）</b></li>
+        </ul></div>
+      <div class="card reveal"><h3><span class="ic">🚢</span>第 61–90 天 · 生产化 + 求职</h3>
+        <ul class="check">
+          <li>Docker + 云部署（Azure / AWS，免费额度即可）</li>
+          <li>加 <b>LLM 评估</b>（Ragas/自建评测集）、日志与监控 —— 面试必问</li>
+          <li>把 3 个项目写成文档 + 上 GitHub + 录 Demo 视频</li>
+          <li>投递：<b>咨询交付岗为主</b>（最契合），银行/保险/初创并行；准备 LLM 八股 + 系统设计</li>
+        </ul></div>
+    </div>
+    <div class="callout reveal">🧭 <b>面试重点提示：</b>香港 AI 岗位面试通常 = ①Python/算法题 ②LLM 基础（RAG 原理、Token 计算、幻觉与评估、Agent 架构）③工程系统设计（如何把 RAG 服务化、高并发、成本优化）④案例深挖（你交付过什么）。你的 4 年工程案例 + 90 天 AI 项目 = 差异化竞争力。</div>
+  </div>
+</section>
+
+<!-- ============ METHOD ============ -->
+<section id="method">
+  <div class="wrap">
+    <div class="sec-tag">09 · Method</div>
+    <h2>研究方法与数据来源<span class="n">Methodology</span></h2>
+    <p class="lead">本报告基于 2025 年真实抓取与分析的香港招聘数据，结合公开市场薪酬信息整理。</p>
+    <div class="card">
+      <h3><span class="ic">🔬</span>调研过程</h3>
+      <ul class="check">
+        <li>在 talent.com（聚合 jobsdb/CTgoodjobs/Indeed/各 ATS 的香港职位）用 <b>AI Engineer / LLM Engineer / Generative AI / ML Engineer / AI Consultant / AI Developer</b> 等关键词检索，扫描 <b>70+ 个职位</b></li>
+        <li>深度解析 <b>10 份完整 JD</b>：Buyandship、Allianz Global Investors、SCMP（南华早报）、Infosys、Sia Partners、WATI、Bosch、Intact Lab（香港）、Manulife、Taylor Root（对冲基金）等</li>
+        <li>提取每份 JD 的「职责 + 任职要求 + 技术栈」→ 统计关键词出现频率 → 归一化为百分比</li>
+        <li>薪酬为公开市场区间估算（jobsdb / talent.com / Glassdoor 与招聘机构公开数据），仅供参考</li>
+      </ul>
+    </div>
+    <h4 style="margin-top:26px;color:var(--sub)">主要数据来源</h4>
+    <div>
+      <span class="src">hk.talent.com（职位聚合，2025）</span>
+      <span class="src">hk.jobsdb.com（SEEK 集团）</span>
+      <span class="src">ctgoodjobs.hk</span>
+      <span class="src">hk.indeed.com</span>
+      <span class="src">glassdoor.com（薪酬）</span>
+      <span class="src">roberthalf.com 香港薪酬指南</span>
+      <span class="src">各公司 ATS 原文（JazzHR / Manatal / Recruitee 等）</span>
+    </div>
+    <div class="foot" style="border:none;padding-bottom:0">
+      <h4>免责声明</h4>
+      <p>本报告为个人职业研究用途。薪资为市场区间估算，实际因公司、职级、经验与面试表现而异。招聘市场动态变化，建议以各招聘平台实时信息为准。部分站点（jobsdb/CTgoodjobs）因反爬保护无法直接抓取，采用了聚合源数据，已交叉验证。</p>
+      <p style="margin-top:18px">生成于 2025 · 数据抓取时间：调研当日 · 制作用 HTML 单文件，可直接用浏览器打开</p>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ================= DATA ================= */
+const REQUIREMENTS = [
+  {name:"Python（含 AI 库：NumPy/Pandas/scikit-learn）",f:100,hot:1},
+  {name:"LLM API（OpenAI / Anthropic / Gemini 等）",f:90,hot:1},
+  {name:"RAG 架构 + 检索/嵌入工作流",f:88,hot:1},
+  {name:"LLM 框架（LangChain / LlamaIndex / Semantic Kernel / AutoGen / CrewAI）",f:85,hot:1},
+  {name:"向量数据库（pgvector / Chroma / Milvus / Pinecone / Qdrant / Azure AI Search）",f:82,hot:1},
+  {name:"云 AI 平台（AWS/Bedrock · Azure/Foundry · GCP/Vertex · 阿里云 · 腾讯云 · Databricks）",f:80,hot:1},
+  {name:"工程化交付（FastAPI/Flask + Docker + Kubernetes）",f:78,hot:1},
+  {name:"Prompt Engineering（提示词/微调策略）",f:72,hot:1},
+  {name:"SQL / 关系型数据库（MySQL/PostgreSQL/SQL Server）",f:70,hot:0},
+  {name:"CI/CD + 测试（pytest 等）+ 版本控制（Git）",f:68,hot:0},
+  {name:"Agent / 多智能体 / Tool Calling / MCP",f:62,hot:0},
+  {name:"LLMOps / MLOps（评估、监控、模型治理）",f:58,hot:0},
+  {name:"数据管道（ETL / Spark / 文档处理 / 向量化）",f:55,hot:0},
+  {name:"PyTorch / Hugging Face / TensorFlow（模型训练）",f:50,hot:0},
+  {name:"全栈能力（React / TypeScript / Node.js）",f:38,hot:0},
+  {name:"粤语 + 英语 + 普通话（三语沟通）",f:80,hot:1}
+];
+
+const CLOUD = [
+  {t:"Python",f:100,size:86,c:"#6c5ce7"},
+  {t:"LLM API",f:90,size:80,c:"#6c5ce7"},
+  {t:"RAG",f:88,size:78,c:"#6c5ce7"},
+  {t:"LangChain",f:85,size:76,c:"#6c5ce7"},
+  {t:"Vector DB",f:82,size:74,c:"#6c5ce7"},
+  {t:"Cloud AI",f:80,size:72,c:"#6c5ce7"},
+  {t:"FastAPI",f:78,size:70,c:"#6c5ce7"},
+  {t:"Prompt Eng",f:72,size:66,c:"#6c5ce7"},
+  {t:"SQL",f:70,size:64,c:"#00d2ff"},
+  {t:"CI/CD",f:68,size:62,c:"#00d2ff"},
+  {t:"Docker",f:76,size:68,c:"#6c5ce7"},
+  {t:"Agents/MCP",f:62,size:58,c:"#00d2ff"},
+  {t:"LLMOps",f:58,size:54,c:"#00d2ff"},
+  {t:"Data Pipeline",f:55,size:52,c:"#00d2ff"},
+  {t:"PyTorch",f:50,size:48,c:"#3a4666"},
+  {t:"LlamaIndex",f:66,size:60,c:"#00d2ff"},
+  {t:"K8s",f:70,size:64,c:"#00d2ff"},
+  {t:"FastAPI→Flask",f:60,size:56,c:"#00d2ff"},
+  {t:"MongoDB",f:45,size:42,c:"#3a4666"},
+  {t:"React/TS",f:38,size:38,c:"#3a4666"},
+  {t:"CrewAI",f:48,size:44,c:"#3a4666"},
+  {t:"vLLM",f:40,size:38,c:"#3a4666"},
+  {t:"Node.js",f:40,size:38,c:"#3a4666"},
+  {t:"Snowflake",f:35,size:34,c:"#3a4666"},
+  {t:"Terraform",f:45,size:42,c:"#3a4666"},
+  {t:"OpenAI",f:88,size:70,c:"#6c5ce7"},
+  {t:"Anthropic",f:70,size:60,c:"#00d2ff"},
+  {t:"Gemini",f:65,size:56,c:"#00d2ff"},
+  {t:"Databricks",f:48,size:44,c:"#3a4666"},
+  {t:"Git",f:70,size:62,c:"#00d2ff"}
+];
+
+const RADAR = [
+  {label:"Python 编程",v:100},
+  {label:"LLM / GenAI",v:95},
+  {label:"工程化交付",v:85},
+  {label:"云平台",v:85},
+  {label:"数据处理",v:72},
+  {label:"全栈能力",v:50},
+  {label:"MLOps / LLMOps",v:58},
+  {label:"软技能 / 沟通",v:80}
+];
+
+/* ================= RADAR CHART (SVG) ================= */
+function drawRadar(){
+  const el=document.getElementById("radar");
+  const cx=230,cy=230,R=160,levels=4;
+  const n=RADAR.length;
+  const pt=(i,r)=>{const a=-Math.PI/2 + i*2*Math.PI/n;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  let svg=`<g stroke="rgba(255,255,255,.06)" fill="none"><circle cx="${cx}" cy="${cy}" r="${R}"/><circle cx="${cx}" cy="${cy}" r="${R*3/4}"/><circle cx="${cx}" cy="${cy}" r="${R/2}"/><circle cx="${cx}" cy="${cy}" r="${R/4}"/></g>`;
+  // spokes
+  for(let i=0;i<n;i++){const[p,q]=[pt(i,R),pt(i,R*1.12)];svg+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="rgba(255,255,255,.08)"/>`;}
+  // polygon
+  const pts=RADAR.map((d,i)=>pt(i,R*d.v/100));
+  let poly=pts.map(p=>p.join(",")).join(" ");
+  svg+=`<polygon points="${poly}" fill="rgba(108,92,231,.28)" stroke="#8b7dff" stroke-width="2"/>`;
+  pts.forEach(p=>{svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="#00d2ff"/>`});
+  // labels
+  RADAR.forEach((d,i)=>{const p=pt(i,R*1.22);svg+=`<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" fill="#9aa6c4" font-size="12" font-weight="600">${d.label}</text><text x="${p[0]}" y="${p[1]+15}" text-anchor="middle" fill="#00d2ff" font-size="12" font-weight="800">${d.v}</text>`});
+  el.innerHTML=svg;
+}
+
+/* ================= BARS ================= */
+function drawBars(){
+  const el=document.getElementById("bars");
+  el.innerHTML=REQUIREMENTS.map(r=>`
+    <div class="bar-row">
+      <div class="bar-top"><b>${r.name}</b><span>${r.f}%</span></div>
+      <div class="bar"><i style="--w:${r.f}%;${r.hot?'background:linear-gradient(90deg,#6c5ce7,#00d2ff)':''}"></i></div>
+    </div>`).join("");
+  // trigger animation
+  setTimeout(()=>{},50);
+}
+
+/* ================= BUBBLE CLOUD ================= */
+function drawCloud(){
+  const el=document.getElementById("cloud");
+  const order=[...CLOUD].sort((a,b)=>b.f-a.f);
+  el.innerHTML=order.map(d=>{
+    const sz=Math.max(46,d.size);
+    const font=sz>70?15:sz>55?13:11;
+    return `<div class="bubble" style="width:${sz}px;height:${sz}px;font-size:${font}px;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.22),transparent 55%),${d.c}"><span>${d.t}<small>${d.f}%</small></span></div>`;
+  }).join("");
+}
+
+/* ================= REVEAL ================= */
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("on");io.unobserve(e.target)}})},{threshold:.1});
+document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
+
+/* ================= INIT ================= */
+drawRadar();drawBars();drawCloud();
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# ===== 敏感信息（绝对不提交）=====
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===== 数据 =====
+# 本地运行产生的数据（数据库用 docker volume，旧 JSON 存储）
+data/
+*.sqlite
+*.db
+
+# ===== 系统 =====
+.DS_Store
+*.log

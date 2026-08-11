@@ -1,0 +1,34 @@
+[project]
+name = "llm-qa-service"
+version = "0.3.0"
+description = "企业知识库问答服务 - LLM API + RAG + pgvector (对标 SCMP/Buyandship JD)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "python-multipart>=0.0.9",
+    # 存储：PostgreSQL + pgvector（docker compose up -d）
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    "pgvector>=0.3",
+    # RAG
+    "pypdf>=4.0",
+    "fastembed>=0.3",   # 本地 embedding（首次使用自动下载模型）
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
