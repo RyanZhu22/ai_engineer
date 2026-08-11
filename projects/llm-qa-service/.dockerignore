@@ -1,0 +1,11 @@
+# 构建上下文排除：避免 .venv(219MB)/.git/secret 进 image
+.venv
+.git
+__pycache__
+.pytest_cache
+.env
+data
+tests
+sample_data
+*.md
+docker-compose.yml
