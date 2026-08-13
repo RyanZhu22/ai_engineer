@@ -13,7 +13,8 @@
 | Docker image（128MB）+ 容器验证 | ✅ | 08-11 | 7 个 pytest 通过 |
 | **Render 云端部署** | ✅ | 08-11 | 公网可上传 + RAG 问答 |
 | **Agent 开发（tool calling / 工具循环）** | ✅ | 08-13 | 3 个内置工具 + 流式追踪 + 安全边界 |
-| **MCP 接入（stdio / Streamable HTTP）** | ✅ | 08-13 | allow-list + Agent 复用 + 23 个测试 |
+| **MCP 接入（stdio / Streamable HTTP）** | ✅ | 08-13 | allow-list + Agent 复用 + 24 个测试 |
+| **云端 MCP 配置 + 端到端验证** | ✅ | 08-13 | Render 控制台配置 `MCP_SERVERS_JSON`，Agent 混合调用内置 + MCP 工具 |
 
 ## 待办
 
