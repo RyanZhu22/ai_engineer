@@ -58,3 +58,10 @@
 - function calling = 模型输出「函数名 + JSON 参数」的调用格式；MCP = 外部工具、资源和提示词的标准协议
 - 本项目先把本地/远程 MCP tool 适配为同一个 `Tool` 抽象，再交给原有 Agent loop，避免重写编排逻辑
 - 安全重点：MCP server 与 tool 都由部署者 allow-list；客户端不能传 command、URL、token；设置超时、数量和输出长度上限
+
+### 问题 6：怎么知道 Agent 开发做好了？怎么测试？（08-13 新增）
+**回答思路：**
+- 三层测试：① 自动化（mock LLM 模拟工具决策，验证循环逻辑/安全边界/容错，24 用例 + CI 自动跑）② 手动 API（真实 LLM 验证工具决策正确：算术→calculator、时间→get_current_time、手册→search_knowledge_base）③ 云端端到端（部署后 /agent 混合调用内置 + MCP 工具）
+- 安全行为必测：未配置 MCP 时 use_mcp=true 必须 503 明确报错；危险表达式/参数越界/迭代超限都有明确错误路径
+- 面试亮点：区分「机制正确」（测试覆盖）与「回答质量」（需 Ragas/评测集）——工程素养的体现
+- 手册见 `docs/agent-testing.md`

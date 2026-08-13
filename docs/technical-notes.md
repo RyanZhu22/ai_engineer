@@ -428,3 +428,10 @@ select(Conversation).options(selectinload(Conversation.messages))
 **Q11：为什么把 RAG 检索包装成工具？**
 - 让模型自主决定「要不要检索、检索什么」，而不是强制每次都检索
 - 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动
+
+**Q12：怎么知道 Agent 开发做好了？怎么测试？（三层测试法）**
+- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 24 个用例，GitHub Actions push 自动跑。
+- **第 2 层 · 手动 API 测试（验证真实模型决策）**：mock 只证明循环逻辑对，不证明真实模型会调对工具。本地起服务 + 真实 key，逐场景 curl 验证：算术→calculator、时间→get_current_time、手册问题→search_knowledge_base、多步问题→连续调用多个工具。
+- **第 3 层 · 云端端到端（验证部署）**：`/health` UP → `/mcp/tools` 列出 allow-list 工具 → `/agent` 真实混合调用内置 + MCP 工具。
+- **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位），不验证「回答质量」——质量评估是另一层，需要评测集 + Ragas 等指标。区分这两件事本身就是工程素养。
+- **安全行为必测**：未配置 MCP 时请求 `use_mcp: true` 必须 503 明确报错，而非静默忽略；危险表达式、超长参数、迭代超限全部有明确错误路径。

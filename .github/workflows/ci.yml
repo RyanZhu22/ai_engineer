@@ -1,0 +1,48 @@
+name: CI
+
+# 每次 push / PR 自动跑测试。验证：pytest 全绿 = Agent/RAG/存储逻辑没被改坏。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      # 与 docker-compose.yml 同款镜像：自带 pgvector 扩展
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: llmqa
+          POSTGRES_PASSWORD: llmqa_dev_only
+          POSTGRES_DB: llmqa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U llmqa -d llmqa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # 测试强制 mock：不下载模型、不消耗真实 LLM 额度（tests/test_api.py 也会强制覆盖）
+      DATABASE_URL: postgresql+psycopg://llmqa:llmqa_dev_only@localhost:5432/llmqa
+      LLM_API_KEY: ""
+      EMBEDDING_PROVIDER: mock
+      MCP_SERVERS_JSON: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: projects/llm-qa-service/pyproject.toml
+
+      - name: Install dependencies
+        working-directory: projects/llm-qa-service
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        working-directory: projects/llm-qa-service
+        run: python -m pytest tests/ -v
