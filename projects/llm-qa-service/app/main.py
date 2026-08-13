@@ -15,11 +15,12 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import history, rag
+from . import agent, history, rag
 from .config import get_settings
 from .db import Document, close_db, get_db, init_db
 from .embedding_client import get_embedding_client
 from .llm_client import LLMClient, get_llm_client
+from .mcp_client import MCPConfigurationError, MCPToolProvider
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="LLM QA Service",
     description="企业知识库问答服务 - 对标香港 AI 工程师 JD",
-    version="0.3.0",
+    version="0.5.0",
     lifespan=lifespan,
 )
 
@@ -69,6 +70,31 @@ class ChatResponse(BaseModel):
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000)
     top_k: int = Field(default=4, ge=1, le=20)
+
+
+# ---------- Agent（tool calling）----------
+AGENT_SYSTEM_PROMPT = (
+    "你是一个企业 AI 助手，能自主决定是否调用工具来准确回答问题。"
+    "可用工具包括：检索知识库、计算器、查询当前时间，以及在启用时由 MCP server 提供的已批准工具。"
+    "优先用工具获取准确信息，再基于结果回答；回答要简洁、注明依据。"
+)
+
+
+class AgentRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=4000, description="用户问题")
+    conversation_id: str | None = Field(default=None, description="会话 ID，留空则新建")
+    temperature: float = Field(default=0.7, ge=0.0, le=1.0)
+    max_iterations: int = Field(default=5, ge=1, le=10, description="工具调用最大轮数")
+    use_mcp: bool = Field(default=False, description="是否接入已配置且允许的 MCP 工具")
+
+
+class AgentResponse(BaseModel):
+    reply: str
+    model: str
+    conversation_id: str
+    tool_calls: list[dict]
+    iterations: int
+    mcp_tools: list[str] = []
 
 
 # ---------- 健康检查 ----------
@@ -107,7 +133,7 @@ async def chat(
     client: LLMClient = Depends(get_llm_client),
 ):
     conv = await _get_or_create_conversation(req.conversation_id)
-    await history.add_message(conv["id"], "user", req.message)
+    conv = await _add_user_message(conv["id"], req.message)
 
     system_prompt = req.system_prompt
     sources = None
@@ -131,7 +157,7 @@ async def chat_stream(
     client: LLMClient = Depends(get_llm_client),
 ):
     conv = await _get_or_create_conversation(req.conversation_id)
-    await history.add_message(conv["id"], "user", req.message)
+    conv = await _add_user_message(conv["id"], req.message)
 
     system_prompt = req.system_prompt
     sources = None
@@ -175,6 +201,112 @@ async def _get_or_create_conversation(conv_id: str | None) -> dict:
             raise HTTPException(404, "会话不存在")
         return conv
     return await history.create_conversation()
+
+
+async def _add_user_message(conv_id: str, message: str) -> dict:
+    """写入用户消息并重新读取会话（返回含最新消息的 dict）。
+
+    原因：create_conversation() 返回的是无消息的快照，直接 add_message 后
+    conv['messages'] 仍是旧数据，会导致新会话的第一条用户消息没传给 LLM。
+    """
+    await history.add_message(conv_id, "user", message)
+    return await history.get_conversation(conv_id)
+
+
+# ---------- Agent 问答 ----------
+@app.post("/agent", response_model=AgentResponse)
+async def agent_chat(
+    req: AgentRequest,
+    session: AsyncSession = Depends(get_db),
+    client: LLMClient = Depends(get_llm_client),
+):
+    """Agent 问答：模型自主决定是否调用工具（检索/计算/查时间），循环直到给出最终回答。"""
+    conv = await _get_or_create_conversation(req.conversation_id)
+    conv = await _add_user_message(conv["id"], req.message)
+
+    messages = _build_messages(AGENT_SYSTEM_PROMPT, conv)
+    try:
+        async with MCPToolProvider.from_settings(enabled=req.use_mcp) as mcp_provider:
+            runner = agent.Agent(client, agent.build_default_tools(session) + mcp_provider.tools)
+            result = await runner.run(messages, temperature=req.temperature, max_iterations=req.max_iterations)
+            mcp_tools = [tool.name for tool in mcp_provider.tools]
+    except MCPConfigurationError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    await history.add_message(conv["id"], "assistant", result.answer)
+
+    return AgentResponse(
+        reply=result.answer,
+        model=client.model,
+        conversation_id=conv["id"],
+        tool_calls=result.tool_calls,
+        iterations=result.iterations,
+        mcp_tools=mcp_tools,
+    )
+
+
+@app.post("/agent/stream")
+async def agent_stream(
+    req: AgentRequest,
+    session: AsyncSession = Depends(get_db),
+    client: LLMClient = Depends(get_llm_client),
+):
+    """Agent 问答（SSE）：逐事件推送工具调用过程 + 最终回答。
+
+    事件类型：
+      - conversation_id：会话 ID
+      - tool_call：模型决定调用某个工具（name/arguments/result）
+      - delta：最终回答（agent 循环结束后一次性给出）
+      - done：结束
+    """
+    conv = await _get_or_create_conversation(req.conversation_id)
+    conv = await _add_user_message(conv["id"], req.message)
+    messages = _build_messages(AGENT_SYSTEM_PROMPT, conv)
+
+    async def event_stream():
+        yield f"data: {json.dumps({'type': 'conversation_id', 'id': conv['id']})}\n\n"
+        try:
+            async with MCPToolProvider.from_settings(enabled=req.use_mcp) as mcp_provider:
+                if mcp_provider.tools:
+                    yield f"data: {json.dumps({'type': 'mcp_tools', 'tools': [tool.name for tool in mcp_provider.tools]}, ensure_ascii=False)}\n\n"
+                runner = agent.Agent(client, agent.build_default_tools(session) + mcp_provider.tools)
+                async for step in runner.iter_steps(messages, temperature=req.temperature, max_iterations=req.max_iterations):
+                    if step["kind"] == "tool_call":
+                        yield f"data: {json.dumps({'type': 'tool_call', 'name': step['name'], 'arguments': step['arguments'], 'result': step['result']}, ensure_ascii=False)}\n\n"
+                    else:
+                        answer = step["answer"]
+                        await history.add_message(conv["id"], "assistant", answer)
+                        yield f"data: {json.dumps({'type': 'delta', 'content': answer}, ensure_ascii=False)}\n\n"
+                        yield f"data: {json.dumps({'type': 'done', 'content': answer}, ensure_ascii=False)}\n\n"
+        except MCPConfigurationError as exc:
+            message = f"MCP 不可用：{exc}"
+            yield f"data: {json.dumps({'type': 'error', 'content': message}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'content': message}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/mcp/tools")
+async def list_mcp_tools():
+    """列出部署者 allow-list 中可被 Agent 使用的 MCP 工具（不执行工具）。"""
+    try:
+        async with MCPToolProvider.from_settings(enabled=True) as provider:
+            return {
+                "servers": provider.server_tools,
+                "tools": [
+                    {"name": tool.name, "description": tool.description, "parameters": tool.parameters}
+                    for tool in provider.tools
+                ],
+            }
+    except MCPConfigurationError as exc:
+        raise HTTPException(503, str(exc)) from exc
 
 
 # ---------- 历史记录 ----------

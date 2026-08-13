@@ -13,6 +13,7 @@
 4. [RAG 链路 + pgvector](#4-rag-链路--pgvector)
 5. [async SQLAlchemy 踩坑记录](#5-async-sqlalchemy-踩坑记录)
 6. [代码位置索引与待办](#6-代码位置索引与待办)
+7. [Agent 循环 + tool calling](#7-agent-循环--tool-calling)
 
 ---
 
@@ -328,8 +329,9 @@ select(Conversation).options(selectinload(Conversation.messages))
 
 | 位置 | 内容 |
 |------|------|
-| `app/llm_client.py` | OpenAI 兼容协议、mock 模式、SSE 流式格式 |
-| `app/main.py` | liveness/readiness、SSE 协议、会话"先存后读"的坑 |
+| `app/llm_client.py` | OpenAI 兼容协议、mock 模式、SSE 流式格式、function calling |
+| `app/agent.py` | Tool 抽象、Agent 循环、内置工具、安全 eval |
+| `app/main.py` | liveness/readiness、SSE 协议、会话"先存后读"的坑、agent 端点 |
 | `app/history.py` | 文件存储取舍（注释声明生产应换数据库） |
 | `app/config.py` | secret 不进代码库、mock 模式 |
 | `Dockerfile` | 分层缓存顺序、非 root 用户 |
@@ -341,10 +343,50 @@ select(Conversation).options(selectinload(Conversation.messages))
 - [ ] LLM API 调用加重试（指数退避，处理 429/5xx）
 - [x] 存储层升级 PostgreSQL + SQLAlchemy（替换 JSON 文件）
 - [x] RAG 链路 + pgvector（上传/切分/检索/生成/来源标注）
+- [x] Agent 开发（tool calling / 工具循环，3 个内置工具）
+- [x] MCP（Model Context Protocol）接入（stdio / Streamable HTTP，server + tool allow-list）
 - [ ] 会话按 user_id 隔离（目前无用户体系，所有会话平铺）
 - [ ] 前端加"清空历史"确认提示，避免误删
 - [ ] 数据库迁移工具（Alembic）替代 create_all
 - [ ] 检索重排（rerank）与混合检索（BM25 + 向量）
+
+---
+
+## 7. Agent 循环 + tool calling
+
+### 已实现的调用链
+
+```text
+用户问题 → LLM（带 tools JSON Schema）
+          ├─ 直接回答 → 返回最终答案
+          └─ tool_calls → 执行本地工具 → role="tool" 回填结果 → 再调用 LLM
+```
+
+本项目将知识库检索、精确计算和香港当前时间统一抽象为 `Tool`。`Agent` 只负责循环和协议拼装；添加新工具时只需提供名称、说明、JSON Schema 和异步函数，不必改动循环逻辑。
+
+### OpenAI 兼容协议要点
+
+1. 请求携带 `tools=[{"type":"function","function":{name,description,parameters}}]` 与 `tool_choice="auto"`。
+2. 模型返回 `message.tool_calls`，其中包含调用 ID、函数名与 JSON 字符串参数。
+3. 服务执行工具后，以 `role="tool"`、相同 `tool_call_id` 将结果回填。
+4. 重复调用模型，直到它不再请求工具或达到迭代上限。
+
+### 安全与运行边界
+
+- 工具参数由模型生成，不应被直接信任：检索词长度、`top_k` 和计算式长度均有限制。
+- 计算器用 AST 白名单实现，只允许数字和受限的算术运算；拒绝函数调用、属性访问、超大指数与异常大的中间结果。
+- 一次请求默认最多 5 次模型迭代、最多 12 次工具调用；工具输出也会截断，防止上下文和响应无限膨胀。
+- 无法解析的 JSON、未知工具和参数不匹配会作为工具错误回填，让模型有机会修正，而不是让服务崩溃。
+
+### 当前范围与下一步
+
+当前完成的是单 Agent + 本地工具的最小可用版本，接口为 `/agent` 和 `/agent/stream`，前端会显示工具调用标签。
+
+### MCP 接入（已实现）
+
+`app/mcp_client.py` 支持 stdio 与 Streamable HTTP MCP server。每次启用 MCP 的 Agent 请求会：连接部署者在 `MCP_SERVERS_JSON` 中配置的 server → `list_tools` → 仅保留 `allowed_tools` → 加上 `mcp_<server>_<tool>` 命名空间 → 转换为本地 `Tool` 后交给现有 Agent loop。
+
+安全原则：API 请求只能传 `use_mcp: true`，不能指定 server 命令、URL 或 token；每个 server 必须显式列工具 allow-list，限制 server 数、工具数、调用超时和结果长度。`/mcp/tools` 可以检查当前部署实际暴露的工具。`app/demo_mcp_server.py` 与测试覆盖用于本地协议验收。
 
 ### 面试问题库（持续追加）
 
@@ -379,3 +421,10 @@ select(Conversation).options(selectinload(Conversation.messages))
 
 **Q9：async SQLAlchemy 的坑？（见 [第 5 节](#5-async-sqlalchemy-踩坑记录)）**
 - relationship 访问必须 selectinload，否则 async 下 lazy load 抛 MissingGreenlet
+
+**Q10：什么是 function calling / tool calling？（见 [第 7 节](#7-agent-循环--tool-calling)）**
+- LLM 返回「函数名 + JSON 参数」而非直接回答；agent loop 执行工具并回喂结果
+
+**Q11：为什么把 RAG 检索包装成工具？**
+- 让模型自主决定「要不要检索、检索什么」，而不是强制每次都检索
+- 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动

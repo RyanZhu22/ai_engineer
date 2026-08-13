@@ -1,6 +1,6 @@
 [project]
 name = "llm-qa-service"
-version = "0.3.0"
+version = "0.5.0"
 description = "企业知识库问答服务 - LLM API + RAG + pgvector (对标 SCMP/Buyandship JD)"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,6 +18,8 @@ dependencies = [
     # RAG
     "pypdf>=4.0",
     "fastembed>=0.3",   # 本地 embedding（首次使用自动下载模型）
+    # Agent / MCP：将外部 MCP server 的工具接入现有 tool calling 循环
+    "mcp>=2.0,<3.0",
 ]
 
 [project.optional-dependencies]

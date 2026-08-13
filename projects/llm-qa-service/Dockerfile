@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir \
     "pydantic-settings>=2.3" "httpx>=0.27" "python-dotenv>=1.0" \
     "python-multipart>=0.0.9" \
     "sqlalchemy>=2.0" "psycopg[binary]>=3.1" "pgvector>=0.3" \
-    "pypdf>=4.0" "fastembed>=0.3"
+    "pypdf>=4.0" "fastembed>=0.3" "mcp>=2.0,<3.0"
 
 # 再复制代码（代码变化不会触发重装依赖）
 COPY app ./app

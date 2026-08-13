@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = 50
     rag_top_k: int = 4
 
+    # ---------- MCP（外部工具接入） ----------
+    # JSON object。键为 server 名；每个 server 必须显式声明 allowed_tools。
+    # 示例见 .env.example / README。留空时 Agent 只使用本地内置工具。
+    mcp_servers_json: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

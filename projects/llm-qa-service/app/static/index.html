@@ -161,6 +161,19 @@ body {
   border-radius: 10px; padding: 2px 10px;
 }
 
+/* 工具调用标签（Agent 模式） */
+.msg-toolcalls {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 10px;
+}
+.toolcall-tag {
+  font-size: 11px; color: #7dd3fc;
+  background: rgba(14,116,144,.15);
+  border: 1px solid rgba(14,116,144,.4);
+  border-radius: 10px; padding: 2px 10px;
+  cursor: help;
+}
+
 .sidebar-bottom { padding: 10px; border-top: 1px solid #2a2b32; }
 .user-chip {
   display: flex; align-items: center; gap: 10px;
@@ -444,6 +457,14 @@ body {
         <input type="checkbox" id="useRag">
         <span>回答时检索知识库</span>
       </label>
+      <label class="kb-toggle">
+        <input type="checkbox" id="useAgent">
+        <span>🤖 Agent 模式（自动调用工具）</span>
+      </label>
+      <label class="kb-toggle">
+        <input type="checkbox" id="useMcp" onchange="if (this.checked) $('useAgent').checked = true">
+        <span>🔌 使用已配置 MCP 工具</span>
+      </label>
     </div>
     <div class="sidebar-bottom">
       <div class="user-chip">
@@ -676,11 +697,17 @@ async function streamToElement(text, contentEl) {
   let fullText = '';
   let convId = currentConvId;
   const useRag = $('useRag').checked;
+  const useAgent = $('useAgent').checked;
+  const useMcp = $('useMcp').checked;
+  const url = useAgent ? '/agent/stream' : '/chat/stream';
+  const payload = useAgent
+    ? { message: text, conversation_id: convId, temperature: 0.7, max_iterations: 5, use_mcp: useMcp }
+    : { message: text, conversation_id: convId, temperature: 0.7, use_rag: useRag };
   try {
-    const resp = await fetch('/chat/stream', {
+    const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, conversation_id: convId, temperature: 0.7, use_rag: useRag }),
+      body: JSON.stringify(payload),
       signal: abortController.signal,
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -703,6 +730,14 @@ async function streamToElement(text, contentEl) {
           currentConvId = data.id;
         } else if (data.type === 'sources') {
           renderSources(contentEl, data.sources);
+        } else if (data.type === 'tool_call') {
+          renderToolCall(contentEl, data);
+        } else if (data.type === 'mcp_tools') {
+          renderMcpTools(contentEl, data.tools);
+        } else if (data.type === 'error') {
+          fullText = data.content;
+          contentEl.setAttribute('data-full', fullText);
+          contentEl.textContent = '⚠️ ' + fullText;
         } else if (data.type === 'delta') {
           fullText += data.content;
           contentEl.setAttribute('data-full', fullText);
@@ -789,6 +824,39 @@ async function deleteDoc(id, ev) {
   ev.stopPropagation();
   await fetch('/documents/' + id, { method: 'DELETE' });
   refreshDocs();
+}
+
+/* 渲染 Agent 工具调用标签 */
+function renderToolCall(contentEl, data) {
+  const body = contentEl.parentElement;
+  let wrap = body.querySelector('.msg-toolcalls');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'msg-toolcalls';
+    body.insertBefore(wrap, contentEl);
+  }
+  const tag = document.createElement('span');
+  tag.className = 'toolcall-tag';
+  tag.textContent = `🔧 ${data.name}`;
+  tag.title = `参数: ${JSON.stringify(data.arguments)}\n结果: ${data.result}`;
+  wrap.appendChild(tag);
+}
+
+/* 提示本次 Agent 请求实际启用的 MCP 工具（配置错误不会静默忽略） */
+function renderMcpTools(contentEl, tools) {
+  if (!tools || !tools.length) return;
+  const body = contentEl.parentElement;
+  let wrap = body.querySelector('.msg-toolcalls');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'msg-toolcalls';
+    body.insertBefore(wrap, contentEl);
+  }
+  const tag = document.createElement('span');
+  tag.className = 'toolcall-tag';
+  tag.textContent = `🔌 MCP：${tools.length} 个工具已连接`;
+  tag.title = tools.join('\n');
+  wrap.appendChild(tag);
 }
 
 /* 渲染 RAG 来源标签 */
