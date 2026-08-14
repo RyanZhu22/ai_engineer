@@ -12,6 +12,16 @@ class Settings(BaseSettings):
     llm_api_key: str = ""   # 空 = mock 模式（无 Key 也能跑通全流程）
     llm_model: str = "gpt-4o-mini"
 
+    # ---------- LLM 客户端（连接池 + 重试） ----------
+    # 连接池：HTTP 连接 TCP 握手 + TLS 协商成本高，长连接复用是关键
+    llm_timeout_seconds: float = 60.0
+    llm_max_connections: int = 100        # 连接池上限（并发峰值）
+    llm_max_keepalive_connections: int = 20  # 空闲保活连接上限
+    # 重试：LLM API 偶发 429（限流）/ 5xx（服务端故障）/ 网络抖动，指数退避重试
+    llm_max_retries: int = 3              # 最大重试次数（不含首次请求）
+    llm_retry_base_delay: float = 1.0     # 退避基数（秒）：1s → 2s → 4s
+    llm_retry_max_delay: float = 8.0      # 退避上限（秒），防止雪崩
+
     # 服务配置
     app_port: int = 8000
     app_env: str = "dev"

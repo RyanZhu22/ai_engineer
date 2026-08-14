@@ -74,9 +74,7 @@ def client():
 client = LLMClient()  # ❌ 每个请求都新建：握手开销 + 连接池形同虚设 + 可能泄漏
 ```
 
-### ⚠️ 可改进点（TODO）
-
-- [ ] `httpx.AsyncClient` 未配置连接池上限，可加：
+### ✅ 连接池上限 + 指数退避重试（已实现 08-13）
 
 ```python
 self._client = httpx.AsyncClient(
@@ -85,11 +83,23 @@ self._client = httpx.AsyncClient(
 )
 ```
 
-- [ ] 加指数退避重试（LLM API 偶发 429/5xx）
+重试策略（`_post_with_retry`，面试考点）：
+
+| 场景 | 处理 |
+|------|------|
+| 429（限流） | 重试，尊重 `Retry-After` 头（封顶 60s） |
+| 5xx（500/502/503/504） | 重试 |
+| 网络错误（连接重置/超时） | 重试 |
+| 4xx（400/401/403/422） | **不重试**，立即失败（重试无意义） |
+
+- 退避：指数 `base * 2^attempt`（1s → 2s → 4s）+ 随机抖动（jitter），防止重试风暴同时打爆上游
+- **流式边界**：只在"拿到响应头之前"重试；一旦开始流式输出 token，中途断流不重试（重发会重复输出）
+- 所有参数（连接数/重试次数/退避间隔）环境变量可调，测试注入 `httpx.MockTransport` 模拟故障（10 个新测试）
 
 ### 面试讲法（30 秒版）
 
-> "LLM 客户端我用了单例模式 + httpx 连接池复用。HTTP 连接需要 TCP 握手和 TLS 协商，每次请求新建成本很高。单例保证整个应用只建一个 AsyncClient，连接池里的连接反复复用，延迟和资源占用大幅降低。应用关闭时在 lifespan 里显式 aclose 释放连接，避免悬挂连接。"
+> "LLM 客户端我用了单例模式 + httpx 连接池复用。HTTP 连接需要 TCP 握手和 TLS 协商，每次请求新建成本很高。单例保证整个应用只建一个 AsyncClient，连接池里的连接反复复用，延迟和资源占用大幅降低。应用关闭时在 lifespan 里显式 aclose 释放连接，避免悬挂连接。
+> 另外我加了指数退避重试：429 限流尊重 Retry-After，5xx 和网络错误自动重试，4xx 客户端错误直接失败不浪费重试。重试加随机抖动避免重试风暴。流式场景只在拿到响应头前重试，防止用户看到重复内容。"
 
 ---
 
@@ -329,7 +339,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 
 | 位置 | 内容 |
 |------|------|
-| `app/llm_client.py` | OpenAI 兼容协议、mock 模式、SSE 流式格式、function calling |
+| `app/llm_client.py` | OpenAI 兼容协议、mock 模式、SSE 流式格式、function calling、连接池上限 + 指数退避重试 |
 | `app/agent.py` | Tool 抽象、Agent 循环、内置工具、安全 eval |
 | `app/main.py` | liveness/readiness、SSE 协议、会话"先存后读"的坑、agent 端点 |
 | `app/history.py` | 文件存储取舍（注释声明生产应换数据库） |
@@ -339,8 +349,8 @@ select(Conversation).options(selectinload(Conversation.messages))
 
 ### 待落实 TODO（补充到代码时勾选）
 
-- [ ] LLMClient 加连接池上限参数（`httpx.Limits`）
-- [ ] LLM API 调用加重试（指数退避，处理 429/5xx）
+- [x] LLMClient 加连接池上限参数（`httpx.Limits`）
+- [x] LLM API 调用加重试（指数退避，处理 429/5xx）
 - [x] 存储层升级 PostgreSQL + SQLAlchemy（替换 JSON 文件）
 - [x] RAG 链路 + pgvector（上传/切分/检索/生成/来源标注）
 - [x] Agent 开发（tool calling / 工具循环，3 个内置工具）

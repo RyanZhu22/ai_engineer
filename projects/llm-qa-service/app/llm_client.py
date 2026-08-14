@@ -5,8 +5,12 @@
   - OpenAI 兼容协议：base_url + api_key + model
   - 通过环境变量切换供应商，代码零改动
   - mock 模式：无 Key 也能完整跑通服务
+  - 连接池复用：httpx.Limits 限制并发与保活连接，避免每次请求重新握手
+  - 指数退避重试：429（限流）/ 5xx（服务端故障）/ 网络错误，尊重 Retry-After
 """
+import asyncio
 import json
+import random
 import re
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Optional
@@ -14,6 +18,13 @@ from typing import Any, AsyncIterator, Optional
 import httpx
 
 from .config import get_settings
+
+# 可重试状态码：429 = 限流（等一会就能好），5xx = 服务端瞬时故障
+# 面试考点：4xx 客户端错误（400/401/403/422）重试无意义，必须直接失败
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+# Retry-After 等待上限（秒）：尊重上游建议，但防止被要求等过长时间
+MAX_RETRY_AFTER_SECONDS = 60.0
 
 
 @dataclass
@@ -36,13 +47,117 @@ class ChatResult:
         return bool(self.tool_calls)
 
 
+class _RetryableStatusError(httpx.HTTPStatusError):
+    """429/5xx 服务端瞬时错误。继承 HTTPStatusError，调用方按标准方式处理。"""
+
+    def __init__(self, response: httpx.Response, retry_after: Optional[float] = None):
+        super().__init__(
+            f"HTTP {response.status_code} (retries exhausted)",
+            request=response.request,
+            response=response,
+        )
+        self.retry_after = retry_after
+
+
+def _parse_retry_after(value: Optional[str]) -> Optional[float]:
+    """解析 Retry-After 头（秒数）。仅支持数字秒，简单可靠；失败则回退到指数退避。"""
+    if not value:
+        return None
+    try:
+        return min(max(float(value), 0.0), MAX_RETRY_AFTER_SECONDS)
+    except ValueError:
+        return None
+
+
 class LLMClient:
-    def __init__(self, base_url: str = "", api_key: str = "", model: str = "gpt-4o-mini"):
+    def __init__(
+        self,
+        base_url: str = "",
+        api_key: str = "",
+        model: str = "gpt-4o-mini",
+        *,
+        # 以下参数便于测试注入与配置调优（生产值来自 config.py）
+        transport: Optional[httpx.AsyncBaseTransport] = None,  # 测试注入 MockTransport
+        timeout: float = 60.0,
+        max_connections: int = 100,
+        max_keepalive_connections: int = 20,
+        max_retries: int = 3,
+        retry_base_delay: float = 1.0,
+        retry_max_delay: float = 8.0,
+    ):
         self.base_url = base_url or "https://api.openai.com/v1"
         self.api_key = api_key
         self.model = model
         self.mock = not api_key
-        self._client = httpx.AsyncClient(timeout=60.0)
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
+        self.retry_max_delay = retry_max_delay
+        self.pool_limits = (max_connections, max_keepalive_connections)
+        self._client = httpx.AsyncClient(
+            timeout=timeout,
+            limits=httpx.Limits(
+                max_connections=max_connections,
+                max_keepalive_connections=max_keepalive_connections,
+            ),
+            transport=transport,
+        )
+
+    # ---------- 重试核心 ----------
+
+    async def _post_with_retry(
+        self,
+        url: str,
+        *,
+        headers: dict,
+        json: dict,
+        stream: bool = False,
+    ) -> httpx.Response:
+        """POST JSON，带指数退避重试。
+
+        重试策略（面试考点）：
+          - 可重试：429（按 Retry-After 或退避）、5xx（500/502/503/504）、网络错误（TransportError）
+          - 不重试：4xx 客户端错误（400/401/403/422）——重试也不会成功
+          - 退避：1s → 2s → 4s ...（指数）+ 随机抖动（jitter），避免重试风暴同时打爆上游
+          - 流式（stream=True）：只对"拿到响应头之前"的错误重试；
+            一旦开始流式输出，中途断流不重试（重发会导致用户看到重复内容）
+        """
+        last_error: Optional[BaseException] = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                if stream:
+                    req = self._client.build_request("POST", url, headers=headers, json=json)
+                    resp = await self._client.send(req, stream=True)
+                else:
+                    resp = await self._client.post(url, headers=headers, json=json)
+
+                if resp.status_code in RETRYABLE_STATUS:
+                    retry_after = _parse_retry_after(resp.headers.get("retry-after"))
+                    await resp.aclose()
+                    raise _RetryableStatusError(resp, retry_after)
+                resp.raise_for_status()
+                return resp
+            except httpx.HTTPStatusError as exc:
+                # 4xx 客户端错误：重试无意义，直接抛给调用方
+                if exc.response.status_code not in RETRYABLE_STATUS:
+                    raise
+                last_error = exc
+            except httpx.TransportError as exc:
+                # 网络层错误（连接重置/超时/DNS）：重试
+                last_error = exc
+
+            if attempt < self.max_retries:
+                wait = getattr(last_error, "retry_after", None)
+                await asyncio.sleep(wait if wait is not None else self._backoff_delay(attempt))
+
+        assert last_error is not None
+        raise last_error
+
+    def _backoff_delay(self, attempt: int) -> float:
+        """指数退避 + 随机抖动：base * 2^attempt，封顶后加少量抖动。"""
+        base = min(self.retry_base_delay * (2**attempt), self.retry_max_delay)
+        return base + random.uniform(0, min(base, 0.5))
+
+    # ---------- 对外调用 ----------
 
     async def chat(self, messages: list[dict], temperature: float = 0.7) -> str:
         """调用 Chat Completions API。
@@ -57,7 +172,7 @@ class LLMClient:
         if self.mock:
             return self._mock_reply(messages)
 
-        resp = await self._client.post(
+        resp = await self._post_with_retry(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
@@ -66,7 +181,6 @@ class LLMClient:
                 "temperature": temperature,
             },
         )
-        resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
 
@@ -77,6 +191,7 @@ class LLMClient:
           - OpenAI 兼容协议的流式格式：`data: {json}\n\n`，结尾 `data: [DONE]`
           - 每个 chunk 的 content 是增量片段，前端拼起来就是完整回答
           - 流式 = 更低的 first-token latency + 更好的用户体验
+          - 重试只覆盖"请求阶段"：一旦开始产出 token 就不再重试（避免重复输出）
         """
         if self.mock:
             # mock 模式也流式输出，前端体验一致
@@ -84,8 +199,7 @@ class LLMClient:
                 yield ch
             return
 
-        async with self._client.stream(
-            "POST",
+        resp = await self._post_with_retry(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
@@ -94,8 +208,9 @@ class LLMClient:
                 "temperature": temperature,
                 "stream": True,
             },
-        ) as resp:
-            resp.raise_for_status()
+            stream=True,
+        )
+        try:
             async for line in resp.aiter_lines():
                 if not line.startswith("data: "):
                     continue
@@ -107,6 +222,8 @@ class LLMClient:
                 delta = chunk["choices"][0].get("delta", {}).get("content", "")
                 if delta:
                     yield delta
+        finally:
+            await resp.aclose()
 
     async def chat_with_tools(
         self,
@@ -136,12 +253,11 @@ class LLMClient:
             payload["tools"] = [t.to_openai_schema() for t in tools]
             payload["tool_choice"] = "auto"
 
-        resp = await self._client.post(
+        resp = await self._post_with_retry(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
         )
-        resp.raise_for_status()
         data = resp.json()
         msg = data["choices"][0]["message"]
         content = msg.get("content") or ""
@@ -266,5 +382,11 @@ def get_llm_client() -> LLMClient:
             base_url=s.llm_base_url,
             api_key=s.llm_api_key,
             model=s.llm_model,
+            timeout=s.llm_timeout_seconds,
+            max_connections=s.llm_max_connections,
+            max_keepalive_connections=s.llm_max_keepalive_connections,
+            max_retries=s.llm_max_retries,
+            retry_base_delay=s.llm_retry_base_delay,
+            retry_max_delay=s.llm_retry_max_delay,
         )
     return _client

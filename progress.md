@@ -15,11 +15,12 @@
 | **Agent 开发（tool calling / 工具循环）** | ✅ | 08-13 | 3 个内置工具 + 流式追踪 + 安全边界 |
 | **MCP 接入（stdio / Streamable HTTP）** | ✅ | 08-13 | allow-list + Agent 复用 + 24 个测试 |
 | **云端 MCP 配置 + 端到端验证** | ✅ | 08-13 | Render 控制台配置 `MCP_SERVERS_JSON`，Agent 混合调用内置 + MCP 工具 |
+| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑 34 个测试（pgvector 容器 + mock 环境） |
+| **LLMClient 重试 + 连接池上限** | ✅ | 08-13 | `httpx.Limits` + 指数退避（429/5xx/网络错误、Retry-After、jitter）+ 10 个新测试 |
 
 ## 待办
 
 - [ ] LLM 评估（Ragas / 评测集）
-- [ ] LLMClient 重试 + 连接池上限
 - [ ] 混合检索（BM25 + 向量）
 - [ ] 简历更新
 
