@@ -14,6 +14,7 @@
 5. [async SQLAlchemy 踩坑记录](#5-async-sqlalchemy-踩坑记录)
 6. [代码位置索引与待办](#6-代码位置索引与待办)
 7. [Agent 循环 + tool calling](#7-agent-循环--tool-calling)
+8. [RAG 评测集与质量基线](#8-rag-评测集与质量基线)
 
 ---
 
@@ -341,11 +342,13 @@ select(Conversation).options(selectinload(Conversation.messages))
 |------|------|
 | `app/llm_client.py` | OpenAI 兼容协议、mock 模式、SSE 流式格式、function calling、连接池上限 + 指数退避重试 |
 | `app/agent.py` | Tool 抽象、Agent 循环、内置工具、安全 eval |
+| `app/evaluation.py` | 评测集校验、Evidence Hit@K / MRR / 延迟、可选回答与引用评测、CI 阈值 |
 | `app/main.py` | liveness/readiness、SSE 协议、会话"先存后读"的坑、agent 端点 |
 | `app/history.py` | 文件存储取舍（注释声明生产应换数据库） |
 | `app/config.py` | secret 不进代码库、mock 模式 |
 | `Dockerfile` | 分层缓存顺序、非 root 用户 |
 | `tests/test_api.py` | 单例重置原因 |
+| `evals/run_rag_eval.py` | 临时评测语料隔离、执行入口、mock / local / live 三种运行方式 |
 
 ### 待落实 TODO（补充到代码时勾选）
 
@@ -355,6 +358,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 - [x] RAG 链路 + pgvector（上传/切分/检索/生成/来源标注）
 - [x] Agent 开发（tool calling / 工具循环，3 个内置工具）
 - [x] MCP（Model Context Protocol）接入（stdio / Streamable HTTP，server + tool allow-list）
+- [x] RAG 检索评测集 + 基线（31 条人工标注、Hit@K / MRR / P95、CI 回归门槛）
 - [ ] 会话按 user_id 隔离（目前无用户体系，所有会话平铺）
 - [ ] 前端加"清空历史"确认提示，避免误删
 - [ ] 数据库迁移工具（Alembic）替代 create_all
@@ -440,8 +444,54 @@ select(Conversation).options(selectinload(Conversation.messages))
 - 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动
 
 **Q12：怎么知道 Agent 开发做好了？怎么测试？（三层测试法）**
-- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 24 个用例，GitHub Actions push 自动跑。
+- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 39 个 pytest，GitHub Actions push 自动跑。
 - **第 2 层 · 手动 API 测试（验证真实模型决策）**：mock 只证明循环逻辑对，不证明真实模型会调对工具。本地起服务 + 真实 key，逐场景 curl 验证：算术→calculator、时间→get_current_time、手册问题→search_knowledge_base、多步问题→连续调用多个工具。
 - **第 3 层 · 云端端到端（验证部署）**：`/health` UP → `/mcp/tools` 列出 allow-list 工具 → `/agent` 真实混合调用内置 + MCP 工具。
-- **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位），不验证「回答质量」——质量评估是另一层，需要评测集 + Ragas 等指标。区分这两件事本身就是工程素养。
+- **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位）；回答质量则由独立的 31 条评测集衡量检索证据命中、排名与延迟。真实 LLM 再测答案关键词、引用与拒答，不能把 mock 回复当质量分数。
 - **安全行为必测**：未配置 MCP 时请求 `use_mcp: true` 必须 503 明确报错，而非静默忽略；危险表达式、超长参数、迭代超限全部有明确错误路径。
+
+---
+
+## 8. RAG 评测集与质量基线
+
+### 为什么先做检索评测，再做混合检索
+
+“换成 BM25 / rerank 后回答感觉更好”不是可验证的工程结论。先固定问题、答案依据、embedding 模式和 chunk 参数，才能比较一次改动究竟提升了什么，或是否只是在某几个 demo 问题上变好。
+
+本项目将评测拆成两层：
+
+| 层级 | 是否需要真实 LLM | 测什么 | 当前状态 |
+|---|---|---|---|
+| 检索基线 | 否 | Evidence Hit@1/@3/@K、MRR、mean/P50/P95 延迟 | 已接入 CI |
+| 回答与引用 | 是 | 关键事实覆盖、引用编号有效性、引用是否指向正确证据、不可回答问题的拒答 | 命令已实现，需配置真实 Key 运行 |
+
+### 数据集设计
+
+`evals/rag_eval_dataset.jsonl` 有 31 条人工标注样本：29 条可回答问题覆盖员工手册的 8 类政策，另有 2 条没有知识库依据的问题。每条可回答样本不是只标“正确答案”，而是同时标注：
+
+1. `expected_document_title`：正确文档；
+2. `expected_evidence`：答案所依据的原文片段；
+3. `expected_answer_keywords`：真实 LLM 回答中至少应出现的关键事实。
+
+这使得评测能够区分“检索没找到资料”和“资料找到了但模型没答对”。
+
+### 当前基线（2026-09-01）
+
+在 `top_k=4`、同一份员工手册、默认 chunk 参数下：
+
+| Embedding | Evidence Hit@1 | Evidence Hit@4 | MRR | P95 retrieval latency |
+|---|---:|---:|---:|---:|
+| mock feature hashing | 86.2% | 96.5% | 0.9138 | 2.66 ms |
+| `BAAI/bge-small-zh-v1.5` local | 93.1% | 96.5% | 0.9483 | 20.84 ms |
+
+结论不是“local 一定更好”，而是这份数据集下本地中文模型将正确证据提升到第一名的比例提高了 6.9 个百分点。仍未命中的 `travel-tier2-hotel` 和排名第二的 `resignation-unused-leave` 是下一阶段混合检索 / rerank 必须回归验证的样本。
+
+### CI 门槛与运行边界
+
+GitHub Actions 运行 mock embedding 的离线评测，并设置 `Hit@1 >= 0.85`、`Hit@4 >= 0.95`。它能阻止明显退化，但不应代替真实模型质量验证；延迟会受本机 CPU、模型冷暖启动影响，当前只作同环境下的方向性比较，不设硬门槛。
+
+评测临时文档的 source 带 `__eval__` 命名空间，查询也限制在临时文档 ID 内；清理时只删除这个命名空间，避免污染或删除用户知识库。完整运行方式见 `projects/llm-qa-service/evals/README.md`。
+
+### 面试讲法（30 秒版）
+
+> “我不会仅凭 demo 判断 RAG 好不好。我把员工手册问题做成了 31 条版本化评测集，每条标注正确证据。CI 在不调用 LLM 的情况下测 Hit@K、MRR 和 P95 延迟，防止检索改动回归；真实 LLM 模式再测关键事实、引用是否真的指向正确片段，以及无答案时是否拒答。这样后面加 BM25 或 rerank 前后，能用同一套数据量化效果，而不是靠感觉。”

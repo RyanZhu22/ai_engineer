@@ -23,7 +23,7 @@
 | **Agent 工具调用**（检索 / 计算 / 查时间） | ✅ | Agent / tool calling |
 | **MCP 工具接入**（stdio / Streamable HTTP） | ✅ | MCP / 外部系统集成 |
 | ChatGPT 风格前端（暂停/重发/复制/知识库/Agent/MCP 开关） | ✅ | 全栈加分 |
-| 测试 (pytest) | ✅ | 23 个测试通过 |
+| 测试 + RAG 评测 | ✅ | 39 个 pytest + CI 检索基线门槛 |
 
 ## 快速开始
 
@@ -95,7 +95,7 @@ curl -N -X POST http://localhost:8000/agent/stream \
   -d '{"message":"现在香港几点？"}'
 ```
 
-> 当前版本是单 Agent + 本地工具的最小可用实现；MCP 接入是下一项独立待办。
+> 当前版本已支持单 Agent 的本地工具与已 allow-list 的 MCP 工具；MCP 连接只在请求显式启用时建立。
 
 ## MCP 使用（外部工具接入）
 
@@ -131,6 +131,25 @@ curl -X POST http://localhost:8000/agent \
 | `mock` | 确定性哈希向量（词重叠） | 离线测试兜底 |
 
 > ⚠️ `EMBEDDING_DIM` 必须与数据库 `chunks.embedding` 列维度一致（建表时固定）。切换 embedding 模型后需重建表：`docker exec llm-qa-pg psql -U llmqa -d llmqa -c "DROP TABLE chunks, documents;"` 再重启服务。
+
+## RAG / LLM 评测基线
+
+项目包含版本化的 31 条中文评测集（29 条可回答、2 条不可回答），以人工标注的证据片段衡量检索质量。默认评测不调用 LLM，因此可放入 CI；配置真实 LLM 后，可选测答案关键词、引用有效性和拒答行为。
+
+```bash
+# 确定性 mock 基线：CI 同款，不下载模型、不调用 LLM
+.venv/bin/python -m evals.run_rag_eval \
+  --embedding-provider mock \
+  --min-hit-at-1 0.85 \
+  --min-hit-at-k 0.95
+
+# 真实中文 embedding 对照基线
+.venv/bin/python -m evals.run_rag_eval \
+  --embedding-provider local \
+  --output evals/latest-report.md
+```
+
+当前提交的结果：mock embedding 的 Evidence Hit@1 / Hit@4 为 **86.2% / 96.5%**；本地 `bge-small-zh-v1.5` 为 **93.1% / 96.5%**，MRR 为 **0.9483**。完整数据、运行方法和限制见 [evals/README.md](evals/README.md)、[mock 基线](evals/baseline.md) 与 [本地 embedding 基线](evals/baseline.local.md)。
 
 ## 架构
 
@@ -198,10 +217,15 @@ llm-qa-service/
 │   ├── mcp_client.py          # MCP client → 本地 Tool 适配器（allow-list）
 │   ├── demo_mcp_server.py     # 本地验证用的 stdio MCP server
 │   ├── embedding_client.py  # Embedding 客户端（local/api/mock）
+│   ├── evaluation.py        # RAG 评测数据、指标、阈值与报告渲染
 │   ├── rag.py               # RAG：解析/切分/检索/提示词
 │   └── static/index.html    # ChatGPT 风格前端
+├── evals/
+│   ├── rag_eval_dataset.jsonl # 31 条人工标注的 RAG 评测样本
+│   └── run_rag_eval.py        # 评测命令入口（检索 / 可选生成）
 └── tests/
-    └── test_api.py          # 23 个测试（含 RAG / Agent / MCP）
+    ├── test_api.py          # API / RAG / Agent / MCP 测试
+    └── test_evaluation.py   # 评测数据、指标与阈值测试（共 39 个 pytest）
 ```
 
 ## 云端部署（Render 免费层）
@@ -225,3 +249,4 @@ llm-qa-service/
 10. **为什么 Agent 要限制工具参数和循环次数？** → 工具参数来自模型，需限制资源消耗、避免异常输入与无限循环
 11. **MCP 与 function calling 的关系？** → function calling 是模型调用工具的格式；MCP 是把外部工具以统一协议提供给 Agent 的标准。项目通过适配器将 MCP 工具复用到同一个 Agent 循环
 12. **MCP 如何控制风险？** → server 和工具均由部署者 allow-list；客户端无法指定命令/URL；工具参数、超时、数量和输出均有限制
+13. **如何证明 RAG 优化真的有效？** → 固定版本化问题集和人工证据标注，先测 Hit@K / MRR / P95 延迟，再改 embedding、chunk、BM25 或 rerank；真实 LLM 另测答案关键词、引用正确性和拒答，不能把 mock 回复当质量分数

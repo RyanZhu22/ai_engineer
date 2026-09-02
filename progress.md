@@ -15,14 +15,15 @@
 | **Agent 开发（tool calling / 工具循环）** | ✅ | 08-13 | 3 个内置工具 + 流式追踪 + 安全边界 |
 | **MCP 接入（stdio / Streamable HTTP）** | ✅ | 08-13 | allow-list + Agent 复用 + 24 个测试 |
 | **云端 MCP 配置 + 端到端验证** | ✅ | 08-13 | Render 控制台配置 `MCP_SERVERS_JSON`，Agent 混合调用内置 + MCP 工具 |
-| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑 34 个测试（pgvector 容器 + mock 环境） |
+| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑 39 个测试 + mock RAG 基线门槛（pgvector 容器） |
 | **LLMClient 重试 + 连接池上限** | ✅ | 08-13 | `httpx.Limits` + 指数退避（429/5xx/网络错误、Retry-After、jitter）+ 10 个新测试 |
+| **RAG 检索评测集 + 质量基线** | ✅ | 09-01 | 31 条人工标注样本；mock Hit@1 86.2%，本地 bge Hit@1 93.1%；CI 回归门槛 |
 
 ## 待办
 
-- [ ] LLM 评估（Ragas / 评测集）
 - [ ] 混合检索（BM25 + 向量）
 - [ ] 简历更新
+- [ ] 真实 LLM 生成评测（答案忠实度 / 引用 / 拒答；可选 Ragas 或 LLM-as-a-judge）
 
 ## 面试问题积累
 
@@ -60,9 +61,9 @@
 - 本项目先把本地/远程 MCP tool 适配为同一个 `Tool` 抽象，再交给原有 Agent loop，避免重写编排逻辑
 - 安全重点：MCP server 与 tool 都由部署者 allow-list；客户端不能传 command、URL、token；设置超时、数量和输出长度上限
 
-### 问题 6：怎么知道 Agent 开发做好了？怎么测试？（08-13 新增）
+### 问题 6：怎么知道 Agent 开发做好了？怎么测试？（08-13 更新 09-01）
 **回答思路：**
-- 三层测试：① 自动化（mock LLM 模拟工具决策，验证循环逻辑/安全边界/容错，24 用例 + CI 自动跑）② 手动 API（真实 LLM 验证工具决策正确：算术→calculator、时间→get_current_time、手册→search_knowledge_base）③ 云端端到端（部署后 /agent 混合调用内置 + MCP 工具）
+- 三层测试：① 自动化（mock LLM 模拟工具决策，验证循环逻辑/安全边界/容错，39 个 pytest + CI 自动跑）② 手动 API（真实 LLM 验证工具决策正确：算术→calculator、时间→get_current_time、手册→search_knowledge_base）③ 云端端到端（部署后 /agent 混合调用内置 + MCP 工具）
 - 安全行为必测：未配置 MCP 时 use_mcp=true 必须 503 明确报错；危险表达式/参数越界/迭代超限都有明确错误路径
-- 面试亮点：区分「机制正确」（测试覆盖）与「回答质量」（需 Ragas/评测集）——工程素养的体现
+- 回答质量有独立基线：31 条 RAG 评测样本测 Evidence Hit@K、MRR 与 P95 延迟；真实 LLM 再测答案关键词、引用与拒答，不能把 mock 回复当质量分数
 - 手册见 `docs/agent-testing.md`

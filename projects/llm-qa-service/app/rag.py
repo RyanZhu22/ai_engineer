@@ -10,6 +10,7 @@
 """
 import re
 from pathlib import Path
+from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -109,8 +110,14 @@ async def index_document(
     data: bytes,
     chunk_size: int,
     overlap: int,
+    *,
+    title: str | None = None,
 ) -> Document:
-    """解析 → 切分 → embedding → 写入 documents + chunks。"""
+    """解析 → 切分 → embedding → 写入 documents + chunks。
+
+    ``title`` 主要供评测等内部调用使用：可以保留人类可读的文档标题，
+    同时用带命名空间的 ``filename`` 标记临时数据，避免与用户上传文件冲突。
+    """
     import time
     content = parse_document(filename, data)
     chunks = chunk_text(content, chunk_size=chunk_size, overlap=overlap)
@@ -120,7 +127,7 @@ async def index_document(
     emb_client = get_embedding_client()
     vectors = await emb_client.embed(chunks)
 
-    doc = Document(title=Path(filename).stem, source=filename, created_at=time.time())
+    doc = Document(title=title or Path(filename).stem, source=filename, created_at=time.time())
     session.add(doc)
     await session.flush()  # 拿到 doc.id
 
@@ -137,8 +144,16 @@ async def search_chunks(
     session: AsyncSession,
     query: str,
     top_k: int = 4,
+    document_ids: Sequence[int] | None = None,
 ) -> list[dict]:
-    """pgvector 余弦距离检索，返回 [{content, document_id, document_title, score}]。"""
+    """pgvector 余弦距离检索。
+
+    默认在全部文档中搜索；``document_ids`` 仅供内部调用按文档范围检索，
+    例如可重复的离线评测。公开 API 不传该参数，行为保持不变。
+    """
+    if document_ids is not None and not document_ids:
+        return []
+
     emb_client = get_embedding_client()
     q_vec = await emb_client.embed_one(query)
 
@@ -149,6 +164,8 @@ async def search_chunks(
         .order_by(Chunk.embedding.cosine_distance(q_vec))
         .limit(top_k)
     )
+    if document_ids is not None:
+        stmt = stmt.where(Chunk.document_id.in_(document_ids))
     rows = (await session.execute(stmt)).all()
     # 按内容去重：同一文档重复上传/overlap 会导致检索到重复片段
     seen: set[str] = set()
