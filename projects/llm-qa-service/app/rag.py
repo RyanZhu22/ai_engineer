@@ -1,23 +1,34 @@
-"""RAG 链路：加载 → 切分 → 向量化 → 检索 → 生成。
+"""RAG 链路：加载 → 切分 → 向量化 → 混合检索 → 生成。
 
 对标 JD：SCMP/Buyandship 都明确要求 RAG 架构（vector databases + RAG）。
 技术笔记 docs/technical-notes.md 第 2 节：chunks 表用 pgvector 向量检索。
 
 流程：
   1. upload：解析文档（txt/md/pdf）→ 切分 → embedding → 写入 documents + chunks 表
-  2. search：问题 embedding → pgvector 余弦距离 top-k 检索
+  2. search：问题 embedding 的向量召回 + 中文 BM25 词法召回 → RRF 融合
   3. chat：检索结果拼入 system prompt → LLM 生成（见 main.py）
 """
+import math
 import re
-from pathlib import Path
+from collections import Counter
 from collections.abc import Sequence
+from pathlib import Path
+from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
+from .config import get_settings
 from .db import Chunk, Document
 from .embedding_client import get_embedding_client
+
+
+RetrievalMode = Literal["vector", "hybrid"]
+
+# 没有强制引入中文分词依赖：连续中文文本拆为双字、三字词，英文/数字保留完整词。
+# 相比把所有单字都当词，可减少「的、了、天」等泛词对制度类查询排序的干扰。
+_CJK_RUN = re.compile(r"[\u4e00-\u9fff]+")
+_LATIN_OR_NUMBER = re.compile(r"[a-z0-9]+(?:[._:/-][a-z0-9]+)*")
 
 # ---------- 1. 文档解析 ----------
 
@@ -140,47 +151,343 @@ async def index_document(
 
 # ---------- 4. 检索 ----------
 
+def tokenize_for_bm25(text: str) -> list[str]:
+    """把中英文文本转换成无需外部字典的 BM25 token。
+
+    中文没有空格，因此保留相邻双字、三字词；英文、数字、版本号等保留为完整 token。
+    这不是替代专业中文分词器的通用方案，但对当前中小型企业制度库有稳定、零依赖的词法召回。
+    """
+    normalized = text.lower()
+    tokens: list[str] = []
+    for match in _CJK_RUN.finditer(normalized):
+        run = match.group(0)
+        if len(run) == 1:
+            tokens.append(run)
+            continue
+        for width in (2, 3):
+            tokens.extend(run[index:index + width] for index in range(len(run) - width + 1))
+    tokens.extend(_LATIN_OR_NUMBER.findall(normalized))
+    return tokens
+
+
+def bm25_scores(
+    query: str,
+    documents: Sequence[str],
+    *,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> list[float]:
+    """计算 query 对每个文档的 Okapi BM25 分数。
+
+    该实现留在进程内，便于当前项目在不额外部署搜索服务时获得词法召回；数据库规模
+    明显增长后，应迁移到带中文分析器的 OpenSearch / Elasticsearch 或专用 BM25 索引。
+    """
+    if not documents:
+        return []
+    if k1 <= 0 or not 0 <= b <= 1:
+        raise ValueError("BM25 参数要求 k1 > 0 且 0 <= b <= 1")
+
+    query_terms = Counter(tokenize_for_bm25(query))
+    if not query_terms:
+        return [0.0] * len(documents)
+
+    tokenized_documents = [tokenize_for_bm25(document) for document in documents]
+    document_lengths = [len(tokens) for tokens in tokenized_documents]
+    average_length = sum(document_lengths) / len(document_lengths)
+    if average_length == 0:
+        return [0.0] * len(documents)
+
+    document_frequency: Counter[str] = Counter()
+    for tokens in tokenized_documents:
+        document_frequency.update(set(tokens))
+
+    scores: list[float] = []
+    total_documents = len(documents)
+    for tokens, length in zip(tokenized_documents, document_lengths):
+        frequencies = Counter(tokens)
+        score = 0.0
+        length_normalizer = k1 * (1 - b + b * length / average_length)
+        for term, query_frequency in query_terms.items():
+            frequency = frequencies.get(term, 0)
+            if not frequency:
+                continue
+            # Robertson / Sparck Jones IDF，log1p 保证极高频词也不会给出负分。
+            idf = math.log1p(
+                (total_documents - document_frequency[term] + 0.5)
+                / (document_frequency[term] + 0.5)
+            )
+            score += query_frequency * idf * (frequency * (k1 + 1)) / (frequency + length_normalizer)
+        scores.append(score)
+    return scores
+
+
+def reciprocal_rank_fusion(
+    vector_hits: Sequence[dict[str, Any]],
+    bm25_hits: Sequence[dict[str, Any]],
+    *,
+    sentence_bm25_hits: Sequence[dict[str, Any]] = (),
+    rrf_k: int = 60,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
+    sentence_bm25_weight: float = 1.0,
+) -> list[dict[str, Any]]:
+    """用 Reciprocal Rank Fusion 融合向量、chunk BM25 与句级 BM25 三路候选。
+
+    RRF 只使用排名，不直接混合余弦相似度和 BM25 的不可比数值范围；同时命中两路的
+    chunk 会被提升。输入 hit 需含内部 ``chunk_id``，返回值仍保留该字段供调用方序列化。
+    """
+    if rrf_k < 1:
+        raise ValueError("RRF 参数 rrf_k 必须至少为 1")
+    if min(vector_weight, bm25_weight, sentence_bm25_weight) <= 0:
+        raise ValueError("RRF 的各路权重必须大于 0")
+
+    fused: dict[int, dict[str, Any]] = {}
+
+    def add_hits(hits: Sequence[dict[str, Any]], source: str, weight: float) -> None:
+        for rank, hit in enumerate(hits, start=1):
+            chunk_id = int(hit["chunk_id"])
+            entry = fused.get(chunk_id)
+            if entry is None:
+                entry = {
+                    **hit,
+                    "score": 0.0,
+                    "vector_rank": None,
+                    "bm25_rank": None,
+                    "sentence_bm25_rank": None,
+                    "vector_score": None,
+                    "bm25_score": None,
+                    "sentence_bm25_score": None,
+                }
+                fused[chunk_id] = entry
+            entry["score"] += weight / (rrf_k + rank)
+            if source == "vector":
+                entry["vector_rank"] = rank
+                entry["vector_score"] = float(hit["score"])
+            elif source == "bm25":
+                entry["bm25_rank"] = rank
+                entry["bm25_score"] = float(hit["score"])
+            else:
+                entry["sentence_bm25_rank"] = rank
+                entry["sentence_bm25_score"] = float(hit["score"])
+
+    add_hits(vector_hits, "vector", vector_weight)
+    add_hits(bm25_hits, "bm25", bm25_weight)
+    add_hits(sentence_bm25_hits, "sentence_bm25", sentence_bm25_weight)
+
+    missing_rank = float("inf")
+    return sorted(
+        fused.values(),
+        key=lambda hit: (
+            -float(hit["score"]),
+            min(
+                hit["vector_rank"] or missing_rank,
+                hit["bm25_rank"] or missing_rank,
+                hit["sentence_bm25_rank"] or missing_rank,
+            ),
+            hit["vector_rank"] or missing_rank,
+            hit["bm25_rank"] or missing_rank,
+            hit["sentence_bm25_rank"] or missing_rank,
+            int(hit["chunk_id"]),
+        ),
+    )
+
+
 async def search_chunks(
     session: AsyncSession,
     query: str,
     top_k: int = 4,
     document_ids: Sequence[int] | None = None,
-) -> list[dict]:
-    """pgvector 余弦距离检索。
+    retrieval_mode: RetrievalMode | None = None,
+) -> list[dict[str, Any]]:
+    """检索知识库片段，支持 ``vector`` 与默认 ``hybrid`` 两种模式。
 
-    默认在全部文档中搜索；``document_ids`` 仅供内部调用按文档范围检索，
-    例如可重复的离线评测。公开 API 不传该参数，行为保持不变。
+    ``hybrid`` 先各取向量和 BM25 候选，再用 RRF 融合，避免直接比较余弦相似度与 BM25
+    分数。``document_ids`` 仅供内部调用限定范围（例如离线评测）；公开 API 不传时搜索
+    全部文档。
     """
+    if top_k < 1:
+        raise ValueError("top_k 必须至少为 1")
     if document_ids is not None and not document_ids:
         return []
 
+    settings = get_settings()
+    mode = retrieval_mode or settings.rag_retrieval_mode
+    if mode not in ("vector", "hybrid"):
+        raise ValueError("retrieval_mode 必须是 vector 或 hybrid")
+
+    scope = list(document_ids) if document_ids is not None else None
+    vector_limit = max(top_k, settings.rag_vector_candidate_k)
+    vector_hits = await _search_vector_candidates(session, query, limit=vector_limit, document_ids=scope)
+    if mode == "vector":
+        return [_serialize_hit(hit, retrieval_mode="vector") for hit in vector_hits[:top_k]]
+
+    bm25_limit = max(top_k, settings.rag_bm25_candidate_k)
+    bm25_hits = await _search_bm25_candidates(session, query, limit=bm25_limit, document_ids=scope)
+    sentence_bm25_hits = rerank_by_best_sentence_bm25(
+        query,
+        _merge_candidates(vector_hits, bm25_hits),
+    )
+    fused_hits = reciprocal_rank_fusion(
+        vector_hits,
+        bm25_hits,
+        sentence_bm25_hits=sentence_bm25_hits,
+        rrf_k=settings.rag_rrf_k,
+        vector_weight=settings.rag_vector_weight,
+        bm25_weight=settings.rag_bm25_weight,
+        sentence_bm25_weight=settings.rag_sentence_bm25_weight,
+    )
+    return [_serialize_hit(hit, retrieval_mode="hybrid") for hit in fused_hits[:top_k]]
+
+
+async def _search_vector_candidates(
+    session: AsyncSession,
+    query: str,
+    *,
+    limit: int,
+    document_ids: Sequence[int] | None,
+) -> list[dict[str, Any]]:
     emb_client = get_embedding_client()
     q_vec = await emb_client.embed_one(query)
 
-    # cosine_distance 越小越相似（pgvector 的 <=> 算子）；score 在 SQL 端计算
+    # cosine_distance 越小越相似（pgvector 的 <=> 算子）；score 在 SQL 端计算。
     stmt = (
         select(Chunk, Document.title, (1 - Chunk.embedding.cosine_distance(q_vec)).label("score"))
         .join(Document, Chunk.document_id == Document.id)
         .order_by(Chunk.embedding.cosine_distance(q_vec))
-        .limit(top_k)
+        .limit(limit)
     )
     if document_ids is not None:
         stmt = stmt.where(Chunk.document_id.in_(document_ids))
     rows = (await session.execute(stmt)).all()
-    # 按内容去重：同一文档重复上传/overlap 会导致检索到重复片段
-    seen: set[str] = set()
-    result = []
-    for chunk, title, score in rows:
-        if chunk.content in seen:
-            continue
-        seen.add(chunk.content)
-        result.append({
+    return _dedupe_candidates([
+        {
+            "chunk_id": chunk.id,
             "content": chunk.content,
             "document_id": chunk.document_id,
             "document_title": title,
-            "score": round(score, 4),
+            "score": float(score),
+        }
+        for chunk, title, score in rows
+    ])
+
+
+async def _search_bm25_candidates(
+    session: AsyncSession,
+    query: str,
+    *,
+    limit: int,
+    document_ids: Sequence[int] | None,
+) -> list[dict[str, Any]]:
+    """读取当前知识库范围内的 chunk 并计算 BM25 候选。"""
+    stmt = (
+        select(Chunk, Document.title)
+        .join(Document, Chunk.document_id == Document.id)
+        .order_by(Chunk.id)
+    )
+    if document_ids is not None:
+        stmt = stmt.where(Chunk.document_id.in_(document_ids))
+    rows = (await session.execute(stmt)).all()
+    candidates = _dedupe_candidates([
+        {
+            "chunk_id": chunk.id,
+            "content": chunk.content,
+            "document_id": chunk.document_id,
+            "document_title": title,
+            "score": 0.0,
+        }
+        for chunk, title in rows
+    ])
+    scores = bm25_scores(query, [candidate["content"] for candidate in candidates])
+    ranked = [
+        {**candidate, "score": score}
+        for candidate, score in zip(candidates, scores)
+        if score > 0
+    ]
+    ranked.sort(key=lambda hit: (-float(hit["score"]), int(hit["chunk_id"])))
+    return ranked[:limit]
+
+
+def _dedupe_candidates(candidates: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """保持原始排序去除重叠/重复上传带来的相同内容。"""
+    seen: set[str] = set()
+    deduplicated: list[dict[str, Any]] = []
+    for candidate in candidates:
+        content = str(candidate["content"])
+        if content in seen:
+            continue
+        seen.add(content)
+        deduplicated.append(candidate)
+    return deduplicated
+
+
+def _merge_candidates(*candidate_lists: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """按 chunk ID 合并多路候选，保留首次出现时的完整元数据。"""
+    merged: dict[int, dict[str, Any]] = {}
+    for candidates in candidate_lists:
+        for candidate in candidates:
+            merged.setdefault(int(candidate["chunk_id"]), candidate)
+    return list(merged.values())
+
+
+def rerank_by_best_sentence_bm25(
+    query: str,
+    candidates: Sequence[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """按候选 chunk 内最相关的事实句进行轻量 rerank。
+
+    chunk 往往包含章节标题和多个制度条目。若只对整块计算 BM25，短标题如“差旅报销”
+    容易压过真正包含金额或时限的句子。这里仅在向量/BM25 的候选并集内重算，不扫描
+    全库，因此是低成本的第二阶段排序，而不是额外的在线模型依赖。
+    """
+    sentence_pairs: list[tuple[int, str]] = []
+    for candidate_index, candidate in enumerate(candidates):
+        sentences = [
+            sentence
+            for sentence in split_sentences(str(candidate["content"]))
+            if not sentence.lstrip().startswith("#")
+        ]
+        # 极端情况下一个 chunk 只有标题，保留全文作为兜底，避免静默丢掉候选。
+        if not sentences:
+            sentences = [str(candidate["content"])]
+        sentence_pairs.extend((candidate_index, sentence) for sentence in sentences)
+
+    sentence_scores = bm25_scores(query, [sentence for _, sentence in sentence_pairs])
+    best_scores: dict[int, float] = {}
+    for (candidate_index, _), score in zip(sentence_pairs, sentence_scores):
+        best_scores[candidate_index] = max(best_scores.get(candidate_index, 0.0), score)
+
+    ranked = [
+        {**candidate, "score": best_scores.get(index, 0.0)}
+        for index, candidate in enumerate(candidates)
+        if best_scores.get(index, 0.0) > 0
+    ]
+    ranked.sort(key=lambda hit: (-float(hit["score"]), int(hit["chunk_id"])))
+    return ranked
+
+
+def _serialize_hit(hit: dict[str, Any], *, retrieval_mode: RetrievalMode) -> dict[str, Any]:
+    """移除内部 chunk ID，并显式说明当前分数语义。"""
+    result: dict[str, Any] = {
+        "content": hit["content"],
+        "document_id": hit["document_id"],
+        "document_title": hit["document_title"],
+        "score": round(float(hit["score"]), 6),
+        "retrieval_mode": retrieval_mode,
+    }
+    if retrieval_mode == "hybrid":
+        result.update({
+            "vector_rank": hit.get("vector_rank"),
+            "bm25_rank": hit.get("bm25_rank"),
+            "sentence_bm25_rank": hit.get("sentence_bm25_rank"),
+            "vector_score": _round_or_none(hit.get("vector_score")),
+            "bm25_score": _round_or_none(hit.get("bm25_score")),
+            "sentence_bm25_score": _round_or_none(hit.get("sentence_bm25_score")),
         })
     return result
+
+
+def _round_or_none(value: Any, digits: int = 6) -> float | None:
+    return None if value is None else round(float(value), digits)
 
 
 # ---------- 5. 生成 ----------

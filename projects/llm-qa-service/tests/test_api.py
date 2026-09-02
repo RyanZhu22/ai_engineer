@@ -83,6 +83,11 @@ def test_search_retrieves_relevant_chunk(client):
     hits = resp.json()["hits"]
     assert hits, "mock 模式应能基于词重叠检索到内容"
     assert any("年假" in h["content"] for h in hits)
+    assert all(h["retrieval_mode"] == "hybrid" for h in hits)
+    assert all(
+        "vector_rank" in h and "bm25_rank" in h and "sentence_bm25_rank" in h
+        for h in hits
+    )
     client.delete(f"/documents/{doc['id']}")
 
 

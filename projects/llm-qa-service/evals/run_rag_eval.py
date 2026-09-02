@@ -40,6 +40,12 @@ def parse_args() -> argparse.Namespace:
         default="mock",
         help="默认 mock，保证 CI/本地基线无模型下载且结果可复现",
     )
+    parser.add_argument(
+        "--retrieval-mode",
+        choices=("vector", "hybrid"),
+        default="hybrid",
+        help="检索模式：hybrid（默认，BM25 + 向量 RRF）或 vector（旧基线对照）",
+    )
     parser.add_argument("--top-k", type=int, default=4, help="每题检索结果数量（至少 3，默认 4）")
     parser.add_argument(
         "--min-hit-at-1",
@@ -71,6 +77,7 @@ def parse_args() -> argparse.Namespace:
 def configure_environment(args: argparse.Namespace) -> None:
     """在导入 app 前设置 embedding 配置，避免配置缓存或单例污染。"""
     os.environ["EMBEDDING_PROVIDER"] = args.embedding_provider
+    os.environ["RAG_RETRIEVAL_MODE"] = args.retrieval_mode
     if args.chunk_size is not None:
         os.environ["RAG_CHUNK_SIZE"] = str(args.chunk_size)
     if args.overlap is not None:
@@ -119,6 +126,7 @@ async def run(args: argparse.Namespace) -> dict:
                     cases,
                     top_k=args.top_k,
                     document_ids=[document.id],
+                    retrieval_mode=args.retrieval_mode,
                 )
                 if args.with_generation:
                     client = get_llm_client()
@@ -130,6 +138,7 @@ async def run(args: argparse.Namespace) -> dict:
                     corpus_path=_display_path(args.corpus),
                     embedding_mode=get_embedding_client().mode,
                     top_k=args.top_k,
+                    retrieval_mode=args.retrieval_mode,
                     generation_results=generation_results,
                 )
                 validate_retrieval_thresholds(

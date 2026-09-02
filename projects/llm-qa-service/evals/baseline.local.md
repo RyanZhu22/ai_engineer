@@ -1,9 +1,10 @@
 # RAG Evaluation Baseline
 
-- 生成时间（UTC）：2026-09-01T14:53:13.072051+00:00
+- 生成时间（UTC）：2026-09-02T12:59:14.515426+00:00
 - 数据集：`evals/rag_eval_dataset.jsonl`
 - 语料：`sample_data/employee-handbook.md`
 - Embedding：`local`
+- 检索模式：`hybrid`
 - 检索 top_k：4
 
 ## Retrieval metrics
@@ -12,12 +13,12 @@
 |---|---:|
 | Answerable cases | 29 |
 | Unanswerable cases | 2 |
-| Evidence Hit@1 | 93.1% |
-| Evidence Hit@3 | 96.5% |
-| Evidence Hit@4 | 96.5% |
-| MRR | 0.9483 |
-| Mean latency | 6.41 ms |
-| P95 latency | 10.73 ms |
+| Evidence Hit@1 | 100.0% |
+| Evidence Hit@3 | 100.0% |
+| Evidence Hit@4 | 100.0% |
+| MRR | 1.0000 |
+| Mean latency | 10.04 ms |
+| P95 latency | 14.51 ms |
 
 ## Generation and citation metrics
 
@@ -25,10 +26,7 @@
 
 ## Retrieval cases requiring review
 
-| ID | Category | Evidence rank | Question |
-|---|---|---:|---|
-| travel-tier2-hotel | travel | miss | 二线城市的酒店报销上限是多少？ |
-| resignation-unused-leave | offboarding | 2 | 离职时没休完的年假怎么处理？ |
+所有可回答样本都在第一名命中标注证据。
 
 ## Interpretation
 

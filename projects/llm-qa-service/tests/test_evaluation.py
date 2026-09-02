@@ -22,6 +22,7 @@ from app.evaluation import (
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 DATASET_PATH = PROJECT_DIR / "evals" / "rag_eval_dataset.jsonl"
+CORPUS_PATH = PROJECT_DIR / "sample_data" / "employee-handbook.md"
 
 
 def _case(*, answerable: bool = True) -> RAGEvalCase:
@@ -46,6 +47,19 @@ def test_eval_dataset_has_labeled_answerable_and_unanswerable_cases():
     assert {case.category for case in cases} >= {
         "annual_leave", "sick_leave", "overtime", "travel", "remote_work", "training", "offboarding"
     }
+
+
+def test_labeled_evidence_exists_in_the_versioned_evaluation_corpus():
+    corpus = CORPUS_PATH.read_text(encoding="utf-8")
+
+    missing = [
+        (case.id, evidence)
+        for case in load_eval_cases(DATASET_PATH)
+        for evidence in case.expected_evidence
+        if evidence not in corpus
+    ]
+
+    assert missing == []
 
 
 def test_evidence_rank_requires_the_labeled_document_and_evidence_text():
@@ -101,9 +115,12 @@ def test_retrieval_summary_and_markdown_report_expose_baseline_metrics():
         corpus_path="sample_data/example.md",
         embedding_mode="mock",
         top_k=4,
+        retrieval_mode="hybrid",
     )
     markdown = render_markdown_report(report)
     assert "Evidence Hit@1" in markdown
+    assert "检索模式：`hybrid`" in markdown
+    assert report["cases"][0]["hits"][0]["document_title"] == "employee-handbook"
     assert "case-2" in markdown
     assert "--with-generation" in markdown
 

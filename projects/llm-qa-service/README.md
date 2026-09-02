@@ -16,14 +16,14 @@
 | **SSE 流式输出** | ✅ | ChatGPT 式打字机效果 |
 | **会话历史（PostgreSQL 持久化）** | ✅ | 企业级数据层 |
 | **RAG 全链路**（上传→切分→向量化→检索→生成） | ✅ | **SCMP/Buyandship 硬性要求** |
-| **pgvector 向量检索** | ✅ | 向量数据库技能 |
+| **混合检索（pgvector + BM25 + 句级 rerank）** | ✅ | 向量数据库 / 检索融合 |
 | **本地 embedding**（bge-small-zh，无需 API key） | ✅ | 中文检索质量高 |
 | **多文档知识库管理**（上传/列表/删除/检索） | ✅ | RAG 生产化 |
 | **回答带来源标注**（cite） | ✅ | 可追溯，防幻觉 |
 | **Agent 工具调用**（检索 / 计算 / 查时间） | ✅ | Agent / tool calling |
 | **MCP 工具接入**（stdio / Streamable HTTP） | ✅ | MCP / 外部系统集成 |
 | ChatGPT 风格前端（暂停/重发/复制/知识库/Agent/MCP 开关） | ✅ | 全栈加分 |
-| 测试 + RAG 评测 | ✅ | 39 个 pytest + CI 检索基线门槛 |
+| 测试 + RAG 评测 | ✅ | 44 个 pytest + CI hybrid 质量门槛 |
 
 ## 快速开始
 
@@ -51,6 +51,8 @@ uvicorn app.main:app --port 8000 --reload
 1. 打开前端，侧边栏 **📚 知识库 → ＋** 上传文档（txt/md/pdf，≤10MB）
 2. 勾选 **"回答时检索知识库"**
 3. 提问，回答会标注来源 `[资料1] [资料2]`，前端显示来源标签
+
+默认检索模式是 `hybrid`：先取 pgvector 和中文 BM25 的候选，再在候选内按最相关事实句重排，最后用 RRF 融合。`/documents/search` 的每条结果会返回 `retrieval_mode`、三路排名和分项分数，便于排查排序原因；如需回退到仅向量模式，可设置 `RAG_RETRIEVAL_MODE=vector` 后重启服务。
 
 > 快速体验：`sample_data/employee-handbook.md` 是一份现成的中文员工手册示例，
 > 前端上传它即可测试（年假/产假/病假/加班/报销/远程办公/培训/离职 8 个主题）。
@@ -140,16 +142,18 @@ curl -X POST http://localhost:8000/agent \
 # 确定性 mock 基线：CI 同款，不下载模型、不调用 LLM
 .venv/bin/python -m evals.run_rag_eval \
   --embedding-provider mock \
-  --min-hit-at-1 0.85 \
-  --min-hit-at-k 0.95
+  --retrieval-mode hybrid \
+  --min-hit-at-1 0.95 \
+  --min-hit-at-k 1.0
 
 # 真实中文 embedding 对照基线
 .venv/bin/python -m evals.run_rag_eval \
   --embedding-provider local \
+  --retrieval-mode hybrid \
   --output evals/latest-report.md
 ```
 
-当前提交的结果：mock embedding 的 Evidence Hit@1 / Hit@4 为 **86.2% / 96.5%**；本地 `bge-small-zh-v1.5` 为 **93.1% / 96.5%**，MRR 为 **0.9483**。完整数据、运行方法和限制见 [evals/README.md](evals/README.md)、[mock 基线](evals/baseline.md) 与 [本地 embedding 基线](evals/baseline.local.md)。
+当前 hybrid 基线：mock embedding 的 Evidence Hit@1 / Hit@4 为 **96.5% / 100.0%**，MRR 为 **0.9828**；本地 `bge-small-zh-v1.5` 为 **100.0% / 100.0%**，MRR 为 **1.0000**。修正评测标注后，旧 vector mock 对照为 **89.7% / 100.0% / 0.9483**；完整数据、运行方法和限制见 [evals/README.md](evals/README.md)、[mock 基线](evals/baseline.md) 与 [本地 embedding 基线](evals/baseline.local.md)。
 
 ## 架构
 
@@ -162,9 +166,9 @@ FastAPI (main.py) ──► history.py ──► PostgreSQL 16
    ├──► agent.py ──► 工具循环（本地工具 + MCP 工具）
    │       │
    │       ├──► mcp_client.py ──► allow-listed MCP server（stdio / HTTP）
-   │       └──► rag.py ──► documents/chunks 表（pgvector 向量检索）
+   │       └──► rag.py ──► hybrid 检索（pgvector + BM25 + 句级 rerank）
    │
-   ├──► rag.py ──► documents/chunks 表（pgvector 向量检索）
+   ├──► rag.py ──► hybrid 检索（pgvector + BM25 + 句级 rerank）
    │       │
    │       ▼
    │   embedding_client（local bge / api / mock）
@@ -218,14 +222,15 @@ llm-qa-service/
 │   ├── demo_mcp_server.py     # 本地验证用的 stdio MCP server
 │   ├── embedding_client.py  # Embedding 客户端（local/api/mock）
 │   ├── evaluation.py        # RAG 评测数据、指标、阈值与报告渲染
-│   ├── rag.py               # RAG：解析/切分/检索/提示词
+│   ├── rag.py               # RAG：解析/切分/混合检索/提示词
 │   └── static/index.html    # ChatGPT 风格前端
 ├── evals/
 │   ├── rag_eval_dataset.jsonl # 31 条人工标注的 RAG 评测样本
 │   └── run_rag_eval.py        # 评测命令入口（检索 / 可选生成）
 └── tests/
     ├── test_api.py          # API / RAG / Agent / MCP 测试
-    └── test_evaluation.py   # 评测数据、指标与阈值测试（共 39 个 pytest）
+    ├── test_evaluation.py   # 评测数据、指标与阈值测试
+    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（共 44 个 pytest）
 ```
 
 ## 云端部署（Render 免费层）
@@ -249,4 +254,5 @@ llm-qa-service/
 10. **为什么 Agent 要限制工具参数和循环次数？** → 工具参数来自模型，需限制资源消耗、避免异常输入与无限循环
 11. **MCP 与 function calling 的关系？** → function calling 是模型调用工具的格式；MCP 是把外部工具以统一协议提供给 Agent 的标准。项目通过适配器将 MCP 工具复用到同一个 Agent 循环
 12. **MCP 如何控制风险？** → server 和工具均由部署者 allow-list；客户端无法指定命令/URL；工具参数、超时、数量和输出均有限制
-13. **如何证明 RAG 优化真的有效？** → 固定版本化问题集和人工证据标注，先测 Hit@K / MRR / P95 延迟，再改 embedding、chunk、BM25 或 rerank；真实 LLM 另测答案关键词、引用正确性和拒答，不能把 mock 回复当质量分数
+13. **混合检索为什么不用直接相加两种分数？** → 余弦相似度和 BM25 数值范围不可比；先各取候选、再用 RRF 融合排名。大 chunk 的章节标题会干扰词法检索，所以再用候选内最佳事实句的 BM25 做轻量 rerank。
+14. **如何证明 RAG 优化真的有效？** → 固定版本化问题集和人工证据标注，先测 Hit@K / MRR / P95 延迟，再改 embedding、chunk、BM25 或 rerank；本项目 mock Hit@1 从 vector 89.7% 提升到 hybrid 96.5%，本地 bge 达到 100.0%；真实 LLM 另测答案关键词、引用正确性和拒答，不能把 mock 回复当质量分数。

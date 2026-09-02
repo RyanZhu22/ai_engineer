@@ -158,7 +158,7 @@ CREATE INDEX idx_messages_conv ON messages(conversation_id);
 
 - 当前：`history.py` 已用 PostgreSQL + SQLAlchemy async（档次 3），conversations/messages 表关系型存储。
 - RAG：documents/chunks 表 + pgvector（Vector 列），对话与向量同库。
-- 下一步：Alembic 迁移、user_id 多租户、检索重排（rerank）。
+- 下一步：Alembic 迁移、user_id 多租户；检索已升级为 hybrid + 句级 rerank。
 
 ### 面试素材
 
@@ -362,7 +362,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 - [ ] 会话按 user_id 隔离（目前无用户体系，所有会话平铺）
 - [ ] 前端加"清空历史"确认提示，避免误删
 - [ ] 数据库迁移工具（Alembic）替代 create_all
-- [ ] 检索重排（rerank）与混合检索（BM25 + 向量）
+- [x] 检索重排（句级 BM25 rerank）与混合检索（BM25 + 向量 RRF）
 
 ---
 
@@ -444,7 +444,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 - 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动
 
 **Q12：怎么知道 Agent 开发做好了？怎么测试？（三层测试法）**
-- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 39 个 pytest，GitHub Actions push 自动跑。
+- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 44 个 pytest，GitHub Actions push 自动跑。
 - **第 2 层 · 手动 API 测试（验证真实模型决策）**：mock 只证明循环逻辑对，不证明真实模型会调对工具。本地起服务 + 真实 key，逐场景 curl 验证：算术→calculator、时间→get_current_time、手册问题→search_knowledge_base、多步问题→连续调用多个工具。
 - **第 3 层 · 云端端到端（验证部署）**：`/health` UP → `/mcp/tools` 列出 allow-list 工具 → `/agent` 真实混合调用内置 + MCP 工具。
 - **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位）；回答质量则由独立的 31 条评测集衡量检索证据命中、排名与延迟。真实 LLM 再测答案关键词、引用与拒答，不能把 mock 回复当质量分数。
@@ -475,23 +475,35 @@ select(Conversation).options(selectinload(Conversation.messages))
 
 这使得评测能够区分“检索没找到资料”和“资料找到了但模型没答对”。
 
-### 当前基线（2026-09-01）
+### 当前基线与混合检索结果（2026-09-02）
 
 在 `top_k=4`、同一份员工手册、默认 chunk 参数下：
 
-| Embedding | Evidence Hit@1 | Evidence Hit@4 | MRR | P95 retrieval latency |
+| 检索模式 | Evidence Hit@1 | Evidence Hit@4 | MRR | P95 retrieval latency |
 |---|---:|---:|---:|---:|
-| mock feature hashing | 86.2% | 96.5% | 0.9138 | 2.66 ms |
-| `BAAI/bge-small-zh-v1.5` local | 93.1% | 96.5% | 0.9483 | 20.84 ms |
+| mock vector（修正标注后） | 89.7% | 100.0% | 0.9483 | 5.55 ms |
+| mock hybrid | 96.5% | 100.0% | 0.9828 | 8.62 ms |
+| local bge vector（修正标注后） | 96.5% | 100.0% | 0.9828 | 21.21 ms |
+| local bge hybrid | 100.0% | 100.0% | 1.0000 | 14.51 ms |
 
-结论不是“local 一定更好”，而是这份数据集下本地中文模型将正确证据提升到第一名的比例提高了 6.9 个百分点。仍未命中的 `travel-tier2-hotel` 和排名第二的 `resignation-unused-leave` 是下一阶段混合检索 / rerank 必须回归验证的样本。
+原始 `travel-tier2-hotel` 的标注短语含有语料中不存在的“每晚”二字，会制造假的漏召回；现在由测试保证每条人工证据确实存在于评测语料。修正后，hybrid 将 mock Hit@1 从 89.7% 提升到 96.5%，本地 bge 从 96.5% 提升到 100.0%。mock 仍有 `travel-submit-deadline` 排第 2，但真实中文 embedding 已全部第一名命中。
+
+### Hybrid 检索如何工作
+
+1. 用 pgvector 取最多 20 条语义候选；
+2. 在同一文档范围内用中文双字/三字 token 计算 BM25，再取最多 20 条词法候选；
+3. 对两路候选并集内的非标题句子再算一次 BM25，取每个 chunk 最相关的事实句，避免“差旅报销”这类章节标题压过真正含金额或时限的句子；
+4. 用 RRF 融合向量、chunk BM25、句级 BM25 的**排名**，而不直接相加不可比的余弦相似度与 BM25 分数；
+5. `/documents/search` 返回 `vector_rank`、`bm25_rank`、`sentence_bm25_rank` 与各分项分数，便于解释一次排序为什么发生。
+
+这是一种无额外服务、适合中小型知识库的两阶段检索。词法部分当前会在进程内扫描 chunk；规模增长后应替换为带中文分析器的 OpenSearch / Elasticsearch，再用本评测集验证迁移没有回归。
 
 ### CI 门槛与运行边界
 
-GitHub Actions 运行 mock embedding 的离线评测，并设置 `Hit@1 >= 0.85`、`Hit@4 >= 0.95`。它能阻止明显退化，但不应代替真实模型质量验证；延迟会受本机 CPU、模型冷暖启动影响，当前只作同环境下的方向性比较，不设硬门槛。
+GitHub Actions 运行 mock + hybrid 的离线评测，并设置 `Hit@1 >= 0.95`、`Hit@4 >= 1.0`。这允许至多一条样本不是第一名，但不允许任何标注证据丢出前 4；它仍不代替真实模型质量验证。延迟会受本机 CPU、模型冷暖启动影响，当前只作同环境下的方向性比较，不设硬门槛。
 
 评测临时文档的 source 带 `__eval__` 命名空间，查询也限制在临时文档 ID 内；清理时只删除这个命名空间，避免污染或删除用户知识库。完整运行方式见 `projects/llm-qa-service/evals/README.md`。
 
 ### 面试讲法（30 秒版）
 
-> “我不会仅凭 demo 判断 RAG 好不好。我把员工手册问题做成了 31 条版本化评测集，每条标注正确证据。CI 在不调用 LLM 的情况下测 Hit@K、MRR 和 P95 延迟，防止检索改动回归；真实 LLM 模式再测关键事实、引用是否真的指向正确片段，以及无答案时是否拒答。这样后面加 BM25 或 rerank 前后，能用同一套数据量化效果，而不是靠感觉。”
+> “我不会仅凭 demo 判断 RAG 好不好。我把员工手册问题做成了 31 条版本化评测集，并用测试保证每条证据真实存在。检索先取 pgvector 与 BM25 候选，再对候选事实句 rerank，并用 RRF 融合排名；mock Hit@1 从 89.7% 提升到 96.5%，本地中文 embedding 到 100%。CI 不调用 LLM 也会卡住检索回归；真实 LLM 模式再测关键事实、引用和拒答。”

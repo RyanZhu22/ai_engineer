@@ -1,15 +1,15 @@
 # RAG / LLM Evaluation
 
-这套评测把「功能能跑」和「回答质量可量化」分开：默认只运行确定性的检索评测，真实 LLM 可用时再加回答与引用检查。
+这套评测把「功能能跑」和「回答质量可量化」分开：默认运行确定性的 `hybrid` 检索评测，真实 LLM 可用时再加回答与引用检查。
 
 ## 评测资产
 
 - `rag_eval_dataset.jsonl`：31 条人工标注问题，覆盖年假、请假、加班、差旅、远程办公、培训、离职，以及 2 条不可回答问题。
 - `run_rag_eval.py`：创建临时评测语料、运行检索、汇总指标并输出 Markdown / JSON。
-- `baseline.md`：CI 同款的确定性 mock 基线。
-- `baseline.local.md`：本地 `bge-small-zh-v1.5` 的语义检索对照基线。
+- `baseline.md`：CI 同款的确定性 mock + hybrid 基线。
+- `baseline.local.md`：本地 `bge-small-zh-v1.5` + hybrid 基线。
 
-对比检索模型、切分参数、top-k 或混合检索前后时，保留运行命令并更新对应基线；不要把不同 embedding 模式的分数直接混在同一条趋势线上。
+`hybrid` 的流程是：pgvector 向量候选 + 中文 BM25 候选 → 候选块内最佳事实句 BM25 rerank → RRF 排名融合。`vector` 仍保留给优化前后对照或排障；不要把不同 embedding 模式、检索模式或 chunk 参数的分数混在同一条趋势线上。
 
 每条 JSONL 样本包含：
 
@@ -42,8 +42,19 @@ docker compose up -d
 ```bash
 .venv/bin/python -m evals.run_rag_eval \
   --embedding-provider mock \
+  --retrieval-mode hybrid \
+  --min-hit-at-1 0.95 \
+  --min-hit-at-k 1.0 \
   --output evals/latest-report.md \
   --json-output evals/latest-report.json
+```
+
+### 仅向量的优化前对照
+
+```bash
+.venv/bin/python -m evals.run_rag_eval \
+  --embedding-provider mock \
+  --retrieval-mode vector
 ```
 
 ### 真实中文 embedding 基线
@@ -53,6 +64,7 @@ docker compose up -d
 ```bash
 .venv/bin/python -m evals.run_rag_eval \
   --embedding-provider local \
+  --retrieval-mode hybrid \
   --output evals/baseline.local.md
 ```
 
@@ -72,6 +84,8 @@ LLM_MODEL=deepseek-chat \
 
 评测只会写入并清理 source 以 `__eval__` 开头的临时文档；检索也被限制在该文档范围内，因此不会删除或污染用户知识库。加 `--keep-corpus` 可保留临时文档以便手动调试。
 
+`tests/test_evaluation.py` 会验证每一条 `expected_evidence` 都真实出现在版本化语料中，避免标注笔误制造假的“检索漏召回”。
+
 ## 指标解释
 
 | 指标 | 含义 |
@@ -84,3 +98,5 @@ LLM_MODEL=deepseek-chat \
 | No-answer refusal rate | 对知识库没有答案的问题，模型是否明确说明未找到资料 |
 
 当前基线不把纯关键词指标误称为“语义正确率”。后续若接入 Ragas 或 LLM-as-a-judge，应继续复用这个已版本化的数据集，并把模型、提示词、温度、评审提示词一起记录下来，避免不可比较的分数。
+
+当前 in-process BM25 适合中小型知识库和本项目的零额外服务部署。数据规模明显增大时，应将词法索引迁移到带中文分析器的 OpenSearch / Elasticsearch 等专用检索服务，继续保留同一套评测集作为迁移验收标准。

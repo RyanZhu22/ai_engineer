@@ -16,7 +16,7 @@
 {"id":"overtime-holiday","category":"overtime","question":"法定节假日加班的调休倍数是多少？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["法定节假日加班按 2 倍调休"],"expected_answer_keywords":["2倍","调休"]}
 {"id":"overtime-approval","category":"overtime","question":"没经过批准的加班会得到补偿吗？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["未经批准的加班不予补偿"],"expected_answer_keywords":["不予补偿"]}
 {"id":"travel-tier1-hotel","category":"travel","question":"去一线城市出差，住宿一晚最高可以报销多少？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["一线城市每晚不超过 800 元"],"expected_answer_keywords":["800元"]}
-{"id":"travel-tier2-hotel","category":"travel","question":"二线城市的酒店报销上限是多少？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["二线城市每晚不超过 500 元"],"expected_answer_keywords":["500元"]}
+{"id":"travel-tier2-hotel","category":"travel","question":"二线城市的酒店报销上限是多少？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["二线城市不超过 500 元"],"expected_answer_keywords":["500元"]}
 {"id":"travel-submit-deadline","category":"travel","question":"出差回来后几天内必须提交报销？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["行程结束后 14 天内提交"],"expected_answer_keywords":["14天"]}
 {"id":"travel-finance-sla","category":"travel","question":"财务通常需要几个工作日审批差旅报销？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["财务审批周期为 5 个工作日"],"expected_answer_keywords":["5个工作日"]}
 {"id":"remote-days","category":"remote_work","question":"每周最多能申请几天远程办公？","answerable":true,"expected_document_title":"employee-handbook","expected_evidence":["每周可申请最多 2 天远程办公"],"expected_answer_keywords":["2天"]}

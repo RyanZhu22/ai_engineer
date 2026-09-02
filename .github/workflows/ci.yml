@@ -49,10 +49,11 @@ jobs:
 
       - name: Run deterministic RAG evaluation baseline
         working-directory: projects/llm-qa-service
-        # 基线：mock embedding 下 Hit@1=86.2%、Hit@4=96.5%。
-        # 留出小幅波动空间；检索、切分或数据变更导致明显退化时阻止合并。
+        # hybrid 基线：mock embedding 下 Hit@1=96.5%、Hit@4=100%。
+        # 允许至多一条 Hit@1 非第一名；任何证据召回丢失都会阻止合并。
         run: >-
           python -m evals.run_rag_eval
           --embedding-provider mock
-          --min-hit-at-1 0.85
-          --min-hit-at-k 0.95
+          --retrieval-mode hybrid
+          --min-hit-at-1 0.95
+          --min-hit-at-k 1.0

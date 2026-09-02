@@ -129,11 +129,7 @@ class RetrievalResult:
             "latency_ms": round(self.latency_ms, 3),
             "evidence_rank": self.evidence_rank,
             "hits": [
-                {
-                    "document_title": hit["document_title"],
-                    "score": hit["score"],
-                    "content_preview": _preview(hit["content"], limit=160),
-                }
+                _hit_summary(hit)
                 for hit in self.hits
             ],
         }
@@ -229,6 +225,7 @@ async def evaluate_retrieval(
     *,
     top_k: int,
     document_ids: Sequence[int],
+    retrieval_mode: str | None = None,
 ) -> list[RetrievalResult]:
     """对每条问题运行真实检索，并保留每条命中明细供报告排错。"""
     if top_k < 3:
@@ -244,6 +241,7 @@ async def evaluate_retrieval(
             case.question,
             top_k=top_k,
             document_ids=document_ids,
+            retrieval_mode=retrieval_mode,
         )
         latency_ms = (time.perf_counter() - started_at) * 1000
         results.append(
@@ -450,6 +448,7 @@ def build_evaluation_report(
     corpus_path: str | Path,
     embedding_mode: str,
     top_k: int,
+    retrieval_mode: str = "vector",
     generation_results: Sequence[GenerationResult] | None = None,
 ) -> dict[str, Any]:
     """构造可写入 JSON、可渲染 Markdown 的评测结果对象。"""
@@ -459,6 +458,7 @@ def build_evaluation_report(
         "dataset": str(dataset_path),
         "corpus": str(corpus_path),
         "embedding_mode": embedding_mode,
+        "retrieval_mode": retrieval_mode,
         "top_k": top_k,
         "retrieval": summarize_retrieval(retrieval_results, top_k=top_k),
         "cases": [result.to_dict() for result in retrieval_results],
@@ -507,6 +507,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"- 数据集：`{report['dataset']}`",
         f"- 语料：`{report['corpus']}`",
         f"- Embedding：`{report['embedding_mode']}`",
+        f"- 检索模式：`{report['retrieval_mode']}`",
         f"- 检索 top_k：{top_k}",
         "",
         "## Retrieval metrics",
@@ -611,6 +612,27 @@ def _percentile(sorted_values: Sequence[float], percentile: float) -> float:
 def _preview(value: str, *, limit: int) -> str:
     compact = " ".join(value.split())
     return compact if len(compact) <= limit else compact[: limit - 1] + "…"
+
+
+def _hit_summary(hit: dict[str, Any]) -> dict[str, Any]:
+    """保留混合检索分项排名，方便评测 JSON 定位融合排序问题。"""
+    summary = {
+        "document_title": hit["document_title"],
+        "score": hit["score"],
+        "content_preview": _preview(hit["content"], limit=160),
+    }
+    for key in (
+        "retrieval_mode",
+        "vector_rank",
+        "bm25_rank",
+        "sentence_bm25_rank",
+        "vector_score",
+        "bm25_score",
+        "sentence_bm25_score",
+    ):
+        if key in hit:
+            summary[key] = hit[key]
+    return summary
 
 
 def _round(value: float, digits: int = 4) -> float:

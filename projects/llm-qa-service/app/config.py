@@ -1,6 +1,8 @@
 """应用配置 - 从环境变量注入，对齐 production 最佳实践。"""
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +47,17 @@ class Settings(BaseSettings):
     rag_chunk_size: int = 500
     rag_chunk_overlap: int = 50
     rag_top_k: int = 4
+    # hybrid = vector 候选 + BM25 候选经 RRF 融合；vector 可用于对照和回归排查。
+    rag_retrieval_mode: Literal["vector", "hybrid"] = "hybrid"
+    # 候选数大于最终 top_k，避免两路融合时过早丢掉另一种检索器的强相关片段。
+    rag_vector_candidate_k: int = Field(default=20, ge=1, le=200)
+    rag_bm25_candidate_k: int = Field(default=20, ge=1, le=200)
+    # Reciprocal Rank Fusion 常用平滑常数。只影响排序融合，不改变向量或 BM25 原始分数。
+    rag_rrf_k: int = Field(default=60, ge=1, le=200)
+    # 三路 RRF：向量、chunk BM25、候选 chunk 内的最佳事实句 BM25。
+    rag_vector_weight: float = Field(default=1.0, gt=0, le=5)
+    rag_bm25_weight: float = Field(default=1.0, gt=0, le=5)
+    rag_sentence_bm25_weight: float = Field(default=1.0, gt=0, le=5)
 
     # ---------- MCP（外部工具接入） ----------
     # JSON object。键为 server 名；每个 server 必须显式声明 allowed_tools。
