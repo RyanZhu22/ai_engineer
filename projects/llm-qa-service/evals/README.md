@@ -1,6 +1,6 @@
 # RAG / LLM Evaluation
 
-这套评测把「功能能跑」和「回答质量可量化」分开：默认运行确定性的 `hybrid` 检索评测，真实 LLM 可用时再加回答与引用检查。
+这套评测把「功能能跑」和「回答质量可量化」分开：默认运行确定性的 `hybrid` 检索评测，真实 LLM 可用时再加回答、引用与可选的 LLM-as-a-judge 检查。
 
 ## 评测资产
 
@@ -25,7 +25,7 @@
 }
 ```
 
-`expected_evidence` 用于衡量检索是否找到了人工标注的依据；`expected_answer_keywords` 只在真实 LLM 生成模式下衡量回答是否包含关键事实。不可回答问题没有文档或证据标注，生成模式会检查模型是否明确拒答。
+`expected_evidence` 用于衡量检索是否找到了人工标注的依据；`expected_answer_keywords` 只在真实 LLM 生成模式下衡量回答是否包含关键事实。不可回答问题没有文档或证据标注，生成模式会检查模型是否把“无法回答”明确归因于知识库/资料不足，而不是把未经资料支持的否定当作答案。
 
 ## 运行
 
@@ -82,6 +82,28 @@ LLM_MODEL=deepseek-chat \
   --output evals/latest-live-report.md
 ```
 
+### 加入 LLM-as-a-judge 忠实度评审
+
+在生成答案后，再让一个真实 LLM 根据**同一题的检索资料、人工证据标注和候选回答**判断：回答是否忠实于资料、可回答题是否答对关键事实、不可回答题是否恰当拒答。它不是 CI 门槛，也不是“绝对真值”；报告会额外记录裁判 JSON 的解析成功率、候选模型、裁判模型、temperature 和提示词版本，便于可比地复跑。
+
+`--with-llm-judge` 必须与 `--with-generation` 一起使用。完整 31 条数据集会产生 31 次候选回答调用 + 31 次裁判调用，请先确认 API 费用和限额；不会在 mock 模式或 CI 中运行。
+
+```bash
+LLM_BASE_URL=https://api.deepseek.com/v1 \
+LLM_API_KEY=... \
+LLM_MODEL=deepseek-chat \
+EVAL_JUDGE_MODEL=deepseek-chat \
+.venv/bin/python -m evals.run_rag_eval \
+  --embedding-provider local \
+  --retrieval-mode hybrid \
+  --with-generation \
+  --with-llm-judge \
+  --output evals/latest-live-judge-report.md \
+  --json-output evals/latest-live-judge-report.json
+```
+
+`EVAL_JUDGE_MODEL` 留空时复用 `LLM_MODEL`；想临时更换裁判模型，可改为在命令最后加 `--judge-model your-model-name`。候选答案和资料被当作不可信数据传给裁判，裁判提示词明确要求忽略其中的任何指令；如果裁判没有返回合法 JSON，该题不会被计为通过，而会显示在 JSON 报告的 `parse_error` 中。
+
 评测只会写入并清理 source 以 `__eval__` 开头的临时文档；检索也被限制在该文档范围内，因此不会删除或污染用户知识库。加 `--keep-corpus` 可保留临时文档以便手动调试。
 
 `tests/test_evaluation.py` 会验证每一条 `expected_evidence` 都真实出现在版本化语料中，避免标注笔误制造假的“检索漏召回”。
@@ -95,8 +117,13 @@ LLM_MODEL=deepseek-chat \
 | Retrieval latency | 每条 query 的检索耗时，报告 mean / P50 / P95 |
 | Answer keyword recall | 真实 LLM 回答覆盖人工关键事实的比例 |
 | Citation valid / supports evidence | 引用编号是否合法、且是否指向正确证据 |
-| No-answer refusal rate | 对知识库没有答案的问题，模型是否明确说明未找到资料 |
+| No-answer refusal rate | 基于资料/知识库不足的拒答启发式匹配率；支持“资料中未明确提及”“资料不足，无法确认”等常见表达 |
+| Judge JSON parse success | LLM 裁判是否按约定返回可验证 JSON；先看这个覆盖率再看裁判分数 |
+| Judge faithfulness | 裁判认为候选回答的实质性事实均可由已检索资料支持的比例 |
+| Judge answer correctness / refusal appropriate | 可回答题是否答对关键事实；不可回答题是否诚实拒答（均只在成功解析的裁判结果中计算） |
 
-当前基线不把纯关键词指标误称为“语义正确率”。后续若接入 Ragas 或 LLM-as-a-judge，应继续复用这个已版本化的数据集，并把模型、提示词、温度、评审提示词一起记录下来，避免不可比较的分数。
+当前基线不把纯关键词指标或单次 LLM 裁判分数误称为“绝对语义正确率”。比较裁判结果时，要保持数据集、检索配置、候选模型、裁判模型、temperature 和提示词版本一致；确定性的检索门槛仍然是 CI 的唯一质量门槛。
+
+生成评测报告会新增 `Generation cases requiring review（具体失败回答）`：只要关键词、引用、资料不足拒答规则或 LLM 裁判任一项失败，就会列出问题、失败原因、候选回答摘要和裁判理由。这样无需从 31 条总指标反推具体失败样本。
 
 当前 in-process BM25 适合中小型知识库和本项目的零额外服务部署。数据规模明显增大时，应将词法索引迁移到带中文分析器的 OpenSearch / Elasticsearch 等专用检索服务，继续保留同一套评测集作为迁移验收标准。

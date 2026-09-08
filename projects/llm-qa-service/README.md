@@ -23,7 +23,7 @@
 | **Agent 工具调用**（检索 / 计算 / 查时间） | ✅ | Agent / tool calling |
 | **MCP 工具接入**（stdio / Streamable HTTP） | ✅ | MCP / 外部系统集成 |
 | ChatGPT 风格前端（暂停/重发/复制/知识库/Agent/MCP 开关） | ✅ | 全栈加分 |
-| 测试 + RAG 评测 | ✅ | 44 个 pytest + CI hybrid 质量门槛 |
+| 测试 + RAG 评测 | ✅ | 51 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
 
 ## 快速开始
 
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8000/agent \
 
 ## RAG / LLM 评测基线
 
-项目包含版本化的 31 条中文评测集（29 条可回答、2 条不可回答），以人工标注的证据片段衡量检索质量。默认评测不调用 LLM，因此可放入 CI；配置真实 LLM 后，可选测答案关键词、引用有效性和拒答行为。
+项目包含版本化的 31 条中文评测集（29 条可回答、2 条不可回答），以人工标注的证据片段衡量检索质量。默认评测不调用 LLM，因此可放入 CI；配置真实 LLM 后，可选测答案关键词、引用有效性、拒答行为，以及回答是否忠实于已检索资料。
 
 ```bash
 # 确定性 mock 基线：CI 同款，不下载模型、不调用 LLM
@@ -153,7 +153,17 @@ curl -X POST http://localhost:8000/agent \
   --output evals/latest-report.md
 ```
 
-当前 hybrid 基线：mock embedding 的 Evidence Hit@1 / Hit@4 为 **96.5% / 100.0%**，MRR 为 **0.9828**；本地 `bge-small-zh-v1.5` 为 **100.0% / 100.0%**，MRR 为 **1.0000**。修正评测标注后，旧 vector mock 对照为 **89.7% / 100.0% / 0.9483**；完整数据、运行方法和限制见 [evals/README.md](evals/README.md)、[mock 基线](evals/baseline.md) 与 [本地 embedding 基线](evals/baseline.local.md)。
+```bash
+# 真实生成 + LLM-as-a-judge：会产生 62 次 LLM 调用（31 条样本各一次生成、一次裁判），不进 CI
+LLM_API_KEY=... .venv/bin/python -m evals.run_rag_eval \
+  --embedding-provider local \
+  --retrieval-mode hybrid \
+  --with-generation \
+  --with-llm-judge \
+  --output evals/latest-live-judge-report.md
+```
+
+当前 hybrid 基线：mock embedding 的 Evidence Hit@1 / Hit@4 为 **96.5% / 100.0%**，MRR 为 **0.9828**；本地 `bge-small-zh-v1.5` 为 **100.0% / 100.0%**，MRR 为 **1.0000**。真实生成报告会列出关键词、引用、资料不足拒答或 LLM 裁判失败的具体回答；裁判报告还会记录候选/裁判模型、temperature、提示词版本和 JSON 解析成功率，只应比较配置相同的运行；完整数据、运行方法和限制见 [evals/README.md](evals/README.md)、[mock 基线](evals/baseline.md) 与 [本地 embedding 基线](evals/baseline.local.md)。
 
 ## 架构
 
@@ -226,11 +236,11 @@ llm-qa-service/
 │   └── static/index.html    # ChatGPT 风格前端
 ├── evals/
 │   ├── rag_eval_dataset.jsonl # 31 条人工标注的 RAG 评测样本
-│   └── run_rag_eval.py        # 评测命令入口（检索 / 可选生成）
+│   └── run_rag_eval.py        # 评测命令入口（检索 / 可选生成 / LLM 裁判）
 └── tests/
     ├── test_api.py          # API / RAG / Agent / MCP 测试
-    ├── test_evaluation.py   # 评测数据、指标与阈值测试
-    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（共 44 个 pytest）
+    ├── test_evaluation.py   # 评测数据、指标、LLM 裁判与阈值测试
+    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（共 51 个 pytest）
 ```
 
 ## 云端部署（Render 免费层）
@@ -255,4 +265,4 @@ llm-qa-service/
 11. **MCP 与 function calling 的关系？** → function calling 是模型调用工具的格式；MCP 是把外部工具以统一协议提供给 Agent 的标准。项目通过适配器将 MCP 工具复用到同一个 Agent 循环
 12. **MCP 如何控制风险？** → server 和工具均由部署者 allow-list；客户端无法指定命令/URL；工具参数、超时、数量和输出均有限制
 13. **混合检索为什么不用直接相加两种分数？** → 余弦相似度和 BM25 数值范围不可比；先各取候选、再用 RRF 融合排名。大 chunk 的章节标题会干扰词法检索，所以再用候选内最佳事实句的 BM25 做轻量 rerank。
-14. **如何证明 RAG 优化真的有效？** → 固定版本化问题集和人工证据标注，先测 Hit@K / MRR / P95 延迟，再改 embedding、chunk、BM25 或 rerank；本项目 mock Hit@1 从 vector 89.7% 提升到 hybrid 96.5%，本地 bge 达到 100.0%；真实 LLM 另测答案关键词、引用正确性和拒答，不能把 mock 回复当质量分数。
+14. **如何证明 RAG 优化真的有效？** → 固定版本化问题集和人工证据标注，先测 Hit@K / MRR / P95 延迟，再改 embedding、chunk、BM25 或 rerank；本项目 mock Hit@1 从 vector 89.7% 提升到 hybrid 96.5%，本地 bge 达到 100.0%；真实 LLM 另测答案关键词、引用正确性、拒答和可选的资料忠实度裁判，不能把 mock 回复或单次裁判分数当质量结论。

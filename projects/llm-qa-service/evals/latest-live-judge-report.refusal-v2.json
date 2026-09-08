@@ -1,0 +1,2032 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-09-02T14:33:04.411818+00:00",
+  "dataset": "evals/rag_eval_dataset.jsonl",
+  "corpus": "sample_data/employee-handbook.md",
+  "embedding_mode": "local",
+  "retrieval_mode": "hybrid",
+  "top_k": 4,
+  "retrieval": {
+    "total_cases": 31,
+    "answerable_cases": 29,
+    "unanswerable_cases": 2,
+    "evidence_hit_rate_at_1": 1.0,
+    "evidence_hit_rate_at_3": 1.0,
+    "evidence_hit_rate_at_4": 1.0,
+    "mrr": 1.0,
+    "latency_ms": {
+      "mean": 10.264,
+      "p50": 8.487,
+      "p95": 24.7
+    }
+  },
+  "cases": [
+    {
+      "id": "annual-leave-1y",
+      "category": "annual_leave",
+      "question": "员工刚入职满一年，可以享受多少天年假？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "入职满 1 年享 12 天"
+      ],
+      "latency_ms": 9.668,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.681288,
+          "bm25_score": 3.997236,
+          "sentence_bm25_score": 12.872203
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.552998,
+          "bm25_score": 0.543896,
+          "sentence_bm25_score": 1.918246
+        }
+      ]
+    },
+    {
+      "id": "annual-leave-3y",
+      "category": "annual_leave",
+      "question": "服务满三年的全职员工年假是多少天？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "满 3 年享 15 天"
+      ],
+      "latency_ms": 8.487,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.666122,
+          "bm25_score": 3.997236,
+          "sentence_bm25_score": 15.401962
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.544776,
+          "bm25_score": 0.543896,
+          "sentence_bm25_score": 1.918246
+        }
+      ]
+    },
+    {
+      "id": "annual-leave-10y",
+      "category": "annual_leave",
+      "question": "工龄十年后的年假额度是多少？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "满 10 年享 22 天"
+      ],
+      "latency_ms": 5.428,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.585568,
+          "bm25_score": 0.698897,
+          "sentence_bm25_score": 6.602108
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048652,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.443832,
+          "bm25_score": 0.566028,
+          "sentence_bm25_score": 6.86383
+        }
+      ]
+    },
+    {
+      "id": "annual-leave-carryover",
+      "category": "annual_leave",
+      "question": "没有休完的年假最多能带到下一年几天？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "最多可结转 5 天到下一年度"
+      ],
+      "latency_ms": 6.158,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.645658,
+          "bm25_score": 7.023264,
+          "sentence_bm25_score": 37.899548
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.51493,
+          "bm25_score": 1.509409,
+          "sentence_bm25_score": 16.501335
+        }
+      ]
+    },
+    {
+      "id": "annual-leave-apply",
+      "category": "annual_leave",
+      "question": "申请年假要提前多久提交？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "提前 7 个工作日通过 HR 系统提交"
+      ],
+      "latency_ms": 6.51,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.683185,
+          "bm25_score": 1.297413,
+          "sentence_bm25_score": 4.543569
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.644832,
+          "bm25_score": 1.163223,
+          "sentence_bm25_score": 4.151563
+        }
+      ]
+    },
+    {
+      "id": "annual-leave-long-approval",
+      "category": "annual_leave",
+      "question": "一次请超过五天年假，还需要谁审批？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "超过 5 天需部门总监二次审批"
+      ],
+      "latency_ms": 10.354,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.612528,
+          "bm25_score": 0.970918,
+          "sentence_bm25_score": 4.722992
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.566278,
+          "bm25_score": 0.765219,
+          "sentence_bm25_score": 2.943147
+        }
+      ]
+    },
+    {
+      "id": "maternity-days",
+      "category": "leave",
+      "question": "香港员工有多少天有薪产假？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "98 天有薪产假"
+      ],
+      "latency_ms": 6.362,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.633549,
+          "bm25_score": 7.015411,
+          "sentence_bm25_score": 18.363075
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.499945,
+          "bm25_score": 0.35522,
+          "sentence_bm25_score": 1.918246
+        }
+      ]
+    },
+    {
+      "id": "maternity-notice",
+      "category": "leave",
+      "question": "申请产假需要提前多长时间通知经理？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "提前 4 周通知部门经理"
+      ],
+      "latency_ms": 7.484,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.66104,
+          "bm25_score": 2.339646,
+          "sentence_bm25_score": 7.211484
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.619075,
+          "bm25_score": 1.120439,
+          "sentence_bm25_score": 4.33538
+        }
+      ]
+    },
+    {
+      "id": "marriage-days",
+      "category": "leave",
+      "question": "婚假一共有几个工作日？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "婚假为 10 个工作日"
+      ],
+      "latency_ms": 7.175,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.638576,
+          "bm25_score": 2.370494,
+          "sentence_bm25_score": 11.895779
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.517549,
+          "bm25_score": 1.064368,
+          "sentence_bm25_score": 7.507884
+        }
+      ]
+    },
+    {
+      "id": "marriage-deadline",
+      "category": "leave",
+      "question": "领证以后多久内要把婚假休完？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "领证后 6 个月内休完"
+      ],
+      "latency_ms": 6.946,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.618916,
+          "bm25_score": 1.891852,
+          "sentence_bm25_score": 7.839044
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.513842,
+          "bm25_score": 0.188676,
+          "sentence_bm25_score": 2.135306
+        }
+      ]
+    },
+    {
+      "id": "sick-leave-days",
+      "category": "sick_leave",
+      "question": "公司每年提供多少天有薪病假？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "每年享有 14 天有薪病假"
+      ],
+      "latency_ms": 6.641,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.680298,
+          "bm25_score": 7.000742,
+          "sentence_bm25_score": 25.59358
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.560633,
+          "bm25_score": 0.984186,
+          "sentence_bm25_score": 2.8346
+        }
+      ]
+    },
+    {
+      "id": "sick-leave-certificate",
+      "category": "sick_leave",
+      "question": "连续请病假几天以上需要医生证明？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "连续病假超过 2 天须提供医生证明"
+      ],
+      "latency_ms": 6.298,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.667611,
+          "bm25_score": 5.561027,
+          "sentence_bm25_score": 22.222916
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.54274,
+          "bm25_score": 0.717306,
+          "sentence_bm25_score": 2.306514
+        }
+      ]
+    },
+    {
+      "id": "sick-leave-time",
+      "category": "sick_leave",
+      "question": "病假申请最迟当天什么时候提交？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "当天上午 10 点前通过 HR 系统提交"
+      ],
+      "latency_ms": 5.876,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.664799,
+          "bm25_score": 5.141071,
+          "sentence_bm25_score": 13.837221
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.580552,
+          "bm25_score": 2.053939,
+          "sentence_bm25_score": 7.519985
+        }
+      ]
+    },
+    {
+      "id": "overtime-weekday",
+      "category": "overtime",
+      "question": "工作日加班如何补偿？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "工作日加班按 1:1 调休补偿"
+      ],
+      "latency_ms": 5.854,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.574713,
+          "bm25_score": 5.837176,
+          "sentence_bm25_score": 20.781129
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.523124,
+          "bm25_score": 0.687016,
+          "sentence_bm25_score": 4.117937
+        }
+      ]
+    },
+    {
+      "id": "overtime-weekend",
+      "category": "overtime",
+      "question": "周末加班可以换多少倍调休？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "周末加班按 1.5 倍调休"
+      ],
+      "latency_ms": 5.506,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.583611,
+          "bm25_score": 7.228316,
+          "sentence_bm25_score": 19.6399
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.016129,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": null,
+          "sentence_bm25_rank": null,
+          "vector_score": 0.494283,
+          "bm25_score": null,
+          "sentence_bm25_score": null
+        }
+      ]
+    },
+    {
+      "id": "overtime-holiday",
+      "category": "overtime",
+      "question": "法定节假日加班的调休倍数是多少？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "法定节假日加班按 2 倍调休"
+      ],
+      "latency_ms": 5.969,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.615655,
+          "bm25_score": 9.910567,
+          "sentence_bm25_score": 40.129383
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.016129,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": null,
+          "sentence_bm25_rank": null,
+          "vector_score": 0.468269,
+          "bm25_score": null,
+          "sentence_bm25_score": null
+        }
+      ]
+    },
+    {
+      "id": "overtime-approval",
+      "category": "overtime",
+      "question": "没经过批准的加班会得到补偿吗？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "未经批准的加班不予补偿"
+      ],
+      "latency_ms": 5.539,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.54863,
+          "bm25_score": 5.945006,
+          "sentence_bm25_score": 21.43411
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.529645,
+          "bm25_score": 0.188676,
+          "sentence_bm25_score": 1.925484
+        }
+      ]
+    },
+    {
+      "id": "travel-tier1-hotel",
+      "category": "travel",
+      "question": "去一线城市出差，住宿一晚最高可以报销多少？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "一线城市每晚不超过 800 元"
+      ],
+      "latency_ms": 6.378,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.566508,
+          "bm25_score": 3.621654,
+          "sentence_bm25_score": 20.825219
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.563209,
+          "bm25_score": 0.754705,
+          "sentence_bm25_score": 9.026413
+        }
+      ]
+    },
+    {
+      "id": "travel-tier2-hotel",
+      "category": "travel",
+      "question": "二线城市的酒店报销上限是多少？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "二线城市不超过 500 元"
+      ],
+      "latency_ms": 14.661,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.554987,
+          "bm25_score": 1.132057,
+          "sentence_bm25_score": 15.044022
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048652,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.518729,
+          "bm25_score": 1.292165,
+          "sentence_bm25_score": 14.284313
+        }
+      ]
+    },
+    {
+      "id": "travel-submit-deadline",
+      "category": "travel",
+      "question": "出差回来后几天内必须提交报销？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "行程结束后 14 天内提交"
+      ],
+      "latency_ms": 22.703,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.629347,
+          "bm25_score": 1.215645,
+          "sentence_bm25_score": 6.012151
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048652,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.567757,
+          "bm25_score": 2.11218,
+          "sentence_bm25_score": 2.992094
+        }
+      ]
+    },
+    {
+      "id": "travel-finance-sla",
+      "category": "travel",
+      "question": "财务通常需要几个工作日审批差旅报销？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "财务审批周期为 5 个工作日"
+      ],
+      "latency_ms": 24.7,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.682175,
+          "bm25_score": 2.280013,
+          "sentence_bm25_score": 13.664051
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048652,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.604122,
+          "bm25_score": 4.560465,
+          "sentence_bm25_score": 9.09397
+        }
+      ]
+    },
+    {
+      "id": "remote-days",
+      "category": "remote_work",
+      "question": "每周最多能申请几天远程办公？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "每周可申请最多 2 天远程办公"
+      ],
+      "latency_ms": 10.871,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.675705,
+          "bm25_score": 8.639211,
+          "sentence_bm25_score": 20.299082
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.521938,
+          "bm25_score": 0.502876,
+          "sentence_bm25_score": 2.13946
+        }
+      ]
+    },
+    {
+      "id": "remote-apply",
+      "category": "remote_work",
+      "question": "远程办公申请应该提前几天提交？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "提前 1 天在系统中提交申请"
+      ],
+      "latency_ms": 26.43,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.735429,
+          "bm25_score": 6.963501,
+          "sentence_bm25_score": 13.344236
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.560427,
+          "bm25_score": 0.951279,
+          "sentence_bm25_score": 3.123807
+        }
+      ]
+    },
+    {
+      "id": "remote-office",
+      "category": "remote_work",
+      "question": "每个季度至少要去办公室几天参加团队会议？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "每季度至少到办公室 3 天"
+      ],
+      "latency_ms": 11.416,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.525453,
+          "bm25_score": 13.351382,
+          "sentence_bm25_score": 38.909752
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.016129,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": null,
+          "sentence_bm25_rank": null,
+          "vector_score": 0.465665,
+          "bm25_score": null,
+          "sentence_bm25_score": null
+        }
+      ]
+    },
+    {
+      "id": "training-budget",
+      "category": "training",
+      "question": "员工一年的培训预算是多少？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "每年享有 5000 元培训预算"
+      ],
+      "latency_ms": 9.692,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.538434,
+          "bm25_score": 4.504305,
+          "sentence_bm25_score": 13.09818
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.533582,
+          "bm25_score": 0.968851,
+          "sentence_bm25_score": 2.614097
+        }
+      ]
+    },
+    {
+      "id": "training-hours",
+      "category": "training",
+      "question": "技术岗位每年最低要完成多少小时专业培训？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "每年至少完成 40 小时专业培训"
+      ],
+      "latency_ms": 16.114,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.534745,
+          "bm25_score": 11.886337,
+          "sentence_bm25_score": 46.493069
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.502729,
+          "bm25_score": 0.176381,
+          "sentence_bm25_score": 2.609923
+        }
+      ]
+    },
+    {
+      "id": "resignation-permanent",
+      "category": "offboarding",
+      "question": "正式员工辞职时需要提前多久书面通知？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "正式员工离职需提前 1 个月书面通知"
+      ],
+      "latency_ms": 11.764,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.639854,
+          "bm25_score": 7.354869,
+          "sentence_bm25_score": 27.818605
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.5766,
+          "bm25_score": 0.879124,
+          "sentence_bm25_score": 2.496314
+        }
+      ]
+    },
+    {
+      "id": "resignation-probation",
+      "category": "offboarding",
+      "question": "试用期离职需要提前几周通知？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "试用期员工提前 1 周"
+      ],
+      "latency_ms": 8.604,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.04918,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.644446,
+          "bm25_score": 5.480895,
+          "sentence_bm25_score": 19.455147
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048387,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.57943,
+          "bm25_score": 1.921962,
+          "sentence_bm25_score": 7.109342
+        }
+      ]
+    },
+    {
+      "id": "resignation-unused-leave",
+      "category": "offboarding",
+      "question": "离职时没休完的年假怎么处理？",
+      "answerable": true,
+      "expected_document_title": "employee-handbook",
+      "expected_evidence": [
+        "未休完的年假在离职时按日薪折算发放"
+      ],
+      "latency_ms": 14.87,
+      "evidence_rank": 1,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.538446,
+          "bm25_score": 4.105814,
+          "sentence_bm25_score": 24.747675
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048652,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.634081,
+          "bm25_score": 1.482381,
+          "sentence_bm25_score": 14.847314
+        }
+      ]
+    },
+    {
+      "id": "unknown-stock-options",
+      "category": "unanswerable",
+      "question": "公司是否提供股票期权？",
+      "answerable": false,
+      "expected_document_title": null,
+      "expected_evidence": [],
+      "latency_ms": 13.068,
+      "evidence_rank": null,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 2,
+          "vector_score": 0.459332,
+          "bm25_score": 0.717306,
+          "sentence_bm25_score": 2.8346
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048652,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.37615,
+          "bm25_score": 0.670563,
+          "sentence_bm25_score": 3.409852
+        }
+      ]
+    },
+    {
+      "id": "unknown-dinner-allowance",
+      "category": "unanswerable",
+      "question": "晚餐报销额度的上限是多少？",
+      "answerable": false,
+      "expected_document_title": null,
+      "expected_evidence": [],
+      "latency_ms": 10.657,
+      "evidence_rank": null,
+      "hits": [
+        {
+          "document_title": "employee-handbook",
+          "score": 0.048916,
+          "content_preview": "不超过 800 元，二线城市不超过 500 元。 机票需提前 3 天预订经济舱，高铁二等座无需审批。 报销需在行程结束后 14 天内提交，附上发票和行程单，财务审批周期为 5 个工作日。 ## 六、远程办公 员工每周可申请最多 2 天远程办公，需提前 1 天在系统中提交申请并获经理批准。 远程办公期间须保持工作时段在…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 2,
+          "bm25_rank": 1,
+          "sentence_bm25_rank": 1,
+          "vector_score": 0.458482,
+          "bm25_score": 0.188676,
+          "sentence_bm25_score": 2.425424
+        },
+        {
+          "document_title": "employee-handbook",
+          "score": 0.032522,
+          "content_preview": "# 员工手册 2026 ## 一、年假政策 全职员工根据服务年限享受年假：入职满 1 年享 12 天，满 3 年享 15 天，满 5 年享 18 天，满 10 年享 22 天。 年假按日历年度计算，未休完的年假最多可结转 5 天到下一年度。 年假申请需提前 7 个工作日通过 HR 系统提交，直属经理审批，超过 5 天…",
+          "retrieval_mode": "hybrid",
+          "vector_rank": 1,
+          "bm25_rank": 2,
+          "sentence_bm25_rank": null,
+          "vector_score": 0.45974,
+          "bm25_score": 0.176381,
+          "sentence_bm25_score": null
+        }
+      ]
+    }
+  ],
+  "generation": {
+    "metrics": {
+      "answerable_cases": 29,
+      "unanswerable_cases": 2,
+      "answer_keyword_recall": 1.0,
+      "all_answer_keywords_present_rate": 1.0,
+      "citation_format_rate": 1.0,
+      "citation_valid_rate": 1.0,
+      "citation_supports_evidence_rate": 1.0,
+      "no_answer_refusal_rate": 0.5,
+      "latency_ms": {
+        "mean": 1464.77,
+        "p50": 1448.163,
+        "p95": 1809.711
+      }
+    },
+    "cases": [
+      {
+        "id": "annual-leave-1y",
+        "latency_ms": 2608.966,
+        "answer_preview": "根据员工手册，入职满1年的全职员工可享受12天年假。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "annual-leave-3y",
+        "latency_ms": 1339.852,
+        "answer_preview": "根据员工手册，服务满3年的全职员工享有15天年假。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "annual-leave-10y",
+        "latency_ms": 1375.684,
+        "answer_preview": "根据员工手册，入职满 10 年的员工享有 22 天年假。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "annual-leave-carryover",
+        "latency_ms": 1510.659,
+        "answer_preview": "根据员工手册，未休完的年假最多可结转 5 天到下一年度。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "annual-leave-apply",
+        "latency_ms": 1448.163,
+        "answer_preview": "根据员工手册，年假申请需提前 7 个工作日通过 HR 系统提交。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "annual-leave-long-approval",
+        "latency_ms": 939.949,
+        "answer_preview": "根据资料，年假申请超过5天需部门总监二次审批。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "maternity-days",
+        "latency_ms": 1330.596,
+        "answer_preview": "根据资料，产假按香港劳工法例享有 98 天有薪产假，须提前 4 周通知部门经理并提交医院证明。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "maternity-notice",
+        "latency_ms": 1809.711,
+        "answer_preview": "根据资料，申请产假需要提前4周通知部门经理并提交医院证明。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "marriage-days",
+        "latency_ms": 1235.265,
+        "answer_preview": "根据资料，婚假为 10 个工作日，需在领证后 6 个月内休完，凭结婚证书申请。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "marriage-deadline",
+        "latency_ms": 1274.475,
+        "answer_preview": "根据资料，婚假需在领证后 **6 个月内**休完，凭结婚证书申请。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "sick-leave-days",
+        "latency_ms": 1169.21,
+        "answer_preview": "根据员工手册，员工每年享有 **14 天有薪病假**。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "sick-leave-certificate",
+        "latency_ms": 1546.99,
+        "answer_preview": "根据资料，连续病假超过 2 天须提供医生证明。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "sick-leave-time",
+        "latency_ms": 1693.164,
+        "answer_preview": "根据资料，病假申请须在当天上午 10 点前通过 HR 系统提交，并电话通知直属上级。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "overtime-weekday",
+        "latency_ms": 1620.356,
+        "answer_preview": "根据员工手册，工作日加班按 1:1 调休补偿。加班需提前申请并经经理批准，未经批准的加班不予补偿。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "overtime-weekend",
+        "latency_ms": 1109.402,
+        "answer_preview": "根据资料，周末加班按 1.5 倍调休。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "overtime-holiday",
+        "latency_ms": 1438.833,
+        "answer_preview": "根据资料，法定节假日加班按 2 倍调休。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "overtime-approval",
+        "latency_ms": 1492.532,
+        "answer_preview": "根据资料，未经批准的加班不予补偿。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "travel-tier1-hotel",
+        "latency_ms": 1636.957,
+        "answer_preview": "根据资料，去一线城市出差，住宿一晚最高可以报销800元。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "travel-tier2-hotel",
+        "latency_ms": 1530.935,
+        "answer_preview": "根据资料，二线城市出差住宿标准为每晚不超过 500 元。[资料1][资料2]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1,
+          2
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "travel-submit-deadline",
+        "latency_ms": 1470.881,
+        "answer_preview": "根据资料，报销需在行程结束后 **14 天内**提交，并附上发票和行程单。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "travel-finance-sla",
+        "latency_ms": 1466.752,
+        "answer_preview": "根据资料，财务审批周期为 5 个工作日。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "remote-days",
+        "latency_ms": 1511.843,
+        "answer_preview": "根据资料，员工每周最多可申请 **2 天** 远程办公。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "remote-apply",
+        "latency_ms": 1558.021,
+        "answer_preview": "根据资料，远程办公申请需提前 1 天在系统中提交申请并获经理批准。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "remote-office",
+        "latency_ms": 1319.29,
+        "answer_preview": "根据资料，远程办公期间每季度至少到办公室 3 天以参加团队会议。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "training-budget",
+        "latency_ms": 1221.371,
+        "answer_preview": "根据资料，每位员工每年享有 5000 元培训预算，可用于外部课程、认证考试和书籍采购。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "training-hours",
+        "latency_ms": 1278.361,
+        "answer_preview": "根据资料，技术岗位员工每年至少完成 40 小时专业培训。 [资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "resignation-permanent",
+        "latency_ms": 1419.713,
+        "answer_preview": "根据资料，正式员工离职需提前 1 个月书面通知。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "resignation-probation",
+        "latency_ms": 1709.864,
+        "answer_preview": "根据资料，试用期员工离职需提前 1 周通知。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "resignation-unused-leave",
+        "latency_ms": 1639.471,
+        "answer_preview": "根据资料，正式员工离职时，未休完的年假将按日薪折算发放。[资料1]",
+        "keyword_recall": 1.0,
+        "all_keywords_present": true,
+        "citation_indices": [
+          1
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": true,
+        "refusal_detected": null
+      },
+      {
+        "id": "unknown-stock-options",
+        "latency_ms": 1429.507,
+        "answer_preview": "知识库中没有找到相关内容。",
+        "keyword_recall": null,
+        "all_keywords_present": null,
+        "citation_indices": [],
+        "citation_valid": false,
+        "citation_supports_evidence": null,
+        "refusal_detected": true
+      },
+      {
+        "id": "unknown-dinner-allowance",
+        "latency_ms": 1271.102,
+        "answer_preview": "根据资料，出差住宿标准中，一线城市每晚不超过 800 元，二线城市不超过 500 元。但资料中未明确提及“晚餐报销额度”的具体上限。 [资料1] [资料2]",
+        "keyword_recall": null,
+        "all_keywords_present": null,
+        "citation_indices": [
+          1,
+          2
+        ],
+        "citation_valid": true,
+        "citation_supports_evidence": null,
+        "refusal_detected": false
+      }
+    ],
+    "model": "deepseek-chat",
+    "temperature": 0.0,
+    "llm_judge": {
+      "metrics": {
+        "total_cases": 31,
+        "parsed_cases": 31,
+        "unparseable_cases": 0,
+        "json_parse_success_rate": 1.0,
+        "faithfulness_rate": 1.0,
+        "faithfulness_scored_cases": 31,
+        "answer_correct_rate": 1.0,
+        "answer_correct_scored_cases": 29,
+        "unanswerable_refusal_appropriate_rate": 1.0,
+        "unanswerable_refusal_scored_cases": 2,
+        "latency_ms": {
+          "mean": 1656.322,
+          "p50": 1619.779,
+          "p95": 2190.617
+        }
+      },
+      "cases": [
+        {
+          "id": "annual-leave-1y",
+          "category": "annual_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中入职满1年享12天年假的规定，与预期证据和关键词一致。",
+          "latency_ms": 1689.162,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中入职满1年享12天年假的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "annual-leave-3y",
+          "category": "annual_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中满3年享15天年假的规定，与预期证据和关键词一致。",
+          "latency_ms": 1557.942,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中满3年享15天年假的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "annual-leave-10y",
+          "category": "annual_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中满10年享22天年假的规定，事实有据且完全正确。",
+          "latency_ms": 1800.82,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中满10年享22天年假的规定，事实有据且完全正确。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "annual-leave-carryover",
+          "category": "annual_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中‘最多可结转5天’的表述，与预期证据和关键词一致。",
+          "latency_ms": 1667.461,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中‘最多可结转5天’的表述，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "annual-leave-apply",
+          "category": "annual_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中关于年假申请需提前7个工作日通过HR系统提交的规定，与预期证据和关键词一致。",
+          "latency_ms": 1370.675,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中关于年假申请需提前7个工作日通过HR系统提交的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "annual-leave-long-approval",
+          "category": "annual_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中超过5天需部门总监二次审批的规定，且包含所有关键事实。",
+          "latency_ms": 2190.617,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中超过5天需部门总监二次审批的规定，且包含所有关键事实。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "maternity-days",
+          "category": "leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中的98天有薪产假，与预期证据和关键词一致。",
+          "latency_ms": 1719.343,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中的98天有薪产假，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "maternity-notice",
+          "category": "leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中产假需提前4周通知部门经理的规定，与预期证据和关键词一致。",
+          "latency_ms": 1701.501,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中产假需提前4周通知部门经理的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "marriage-days",
+          "category": "leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中婚假为10个工作日，与预期证据和关键词一致。",
+          "latency_ms": 1619.247,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中婚假为10个工作日，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "marriage-deadline",
+          "category": "leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中婚假需在领证后6个月内休完的规定，与预期证据和关键词一致。",
+          "latency_ms": 1841.705,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中婚假需在领证后6个月内休完的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "sick-leave-days",
+          "category": "sick_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中病假制度内容，与预期证据和关键词一致。",
+          "latency_ms": 1556.383,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中病假制度内容，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "sick-leave-certificate",
+          "category": "sick_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中‘连续病假超过2天须提供医生证明’的表述，与预期证据和关键词一致。",
+          "latency_ms": 1431.007,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中‘连续病假超过2天须提供医生证明’的表述，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "sick-leave-time",
+          "category": "sick_leave",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中病假申请当天上午10点前提交的规定，与预期证据和关键词一致。",
+          "latency_ms": 1583.295,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中病假申请当天上午10点前提交的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "overtime-weekday",
+          "category": "overtime",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中工作日加班按1:1调休补偿的规定，并补充了加班需提前申请的条件，与预期证据和关键词一致。",
+          "latency_ms": 2251.418,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中工作日加班按1:1调休补偿的规定，并补充了加班需提前申请的条件，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "overtime-weekend",
+          "category": "overtime",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中周末加班按1.5倍调休的规定，且与预期证据和关键词一致。",
+          "latency_ms": 1846.264,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中周末加班按1.5倍调休的规定，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "overtime-holiday",
+          "category": "overtime",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中法定节假日加班按2倍调休的规定，与预期证据和关键词一致。",
+          "latency_ms": 1877.522,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中法定节假日加班按2倍调休的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "overtime-approval",
+          "category": "overtime",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中“未经批准的加班不予补偿”的表述，与预期证据和关键词一致。",
+          "latency_ms": 1792.124,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中“未经批准的加班不予补偿”的表述，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "travel-tier1-hotel",
+          "category": "travel",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中一线城市住宿每晚不超过800元的规定，且与预期证据和关键词一致。",
+          "latency_ms": 1697.506,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中一线城市住宿每晚不超过800元的规定，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "travel-tier2-hotel",
+          "category": "travel",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中二线城市不超过500元的标准，且与预期证据和关键词一致。",
+          "latency_ms": 1640.319,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中二线城市不超过500元的标准，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "travel-submit-deadline",
+          "category": "travel",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中‘行程结束后14天内提交’的规定，与预期证据和关键词一致。",
+          "latency_ms": 1429.814,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中‘行程结束后14天内提交’的规定，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "travel-finance-sla",
+          "category": "travel",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用了资料中的财务审批周期为5个工作日，且与预期证据和关键词一致。",
+          "latency_ms": 1489.929,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用了资料中的财务审批周期为5个工作日，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "remote-days",
+          "category": "remote_work",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中每周最多2天远程办公的规定，且与预期证据和关键词一致。",
+          "latency_ms": 1449.327,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中每周最多2天远程办公的规定，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "remote-apply",
+          "category": "remote_work",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中提前1天提交申请的要求，与预期证据和关键词一致。",
+          "latency_ms": 1503.726,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中提前1天提交申请的要求，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "remote-office",
+          "category": "remote_work",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中每季度至少到办公室3天的规定，且与预期证据和关键词一致。",
+          "latency_ms": 1517.701,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中每季度至少到办公室3天的规定，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "training-budget",
+          "category": "training",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中5000元培训预算，与预期证据和关键词一致。",
+          "latency_ms": 1619.779,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中5000元培训预算，与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "training-hours",
+          "category": "training",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中技术岗位每年至少40小时专业培训的规定，且与预期证据和关键词一致。",
+          "latency_ms": 1399.875,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中技术岗位每年至少40小时专业培训的规定，且与预期证据和关键词一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "resignation-permanent",
+          "category": "offboarding",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中正式员工离职需提前1个月书面通知的规定，且与人工标注一致。",
+          "latency_ms": 1410.772,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中正式员工离职需提前1个月书面通知的规定，且与人工标注一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "resignation-probation",
+          "category": "offboarding",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用资料中试用期员工提前1周通知的规定，且与预期答案一致。",
+          "latency_ms": 1289.692,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用资料中试用期员工提前1周通知的规定，且与预期答案一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "resignation-unused-leave",
+          "category": "offboarding",
+          "answerable": true,
+          "faithful": true,
+          "answer_correct": true,
+          "refusal_appropriate": null,
+          "reason": "回答准确引用了资料中关于离职时未休年假按日薪折算发放的规定，且与人工标注一致。",
+          "latency_ms": 2108.679,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": true, \"refusal_appropriate\": null, \"reason\": \"回答准确引用了资料中关于离职时未休年假按日薪折算发放的规定，且与人工标注一致。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "unknown-stock-options",
+          "category": "unanswerable",
+          "answerable": false,
+          "faithful": true,
+          "answer_correct": null,
+          "refusal_appropriate": true,
+          "reason": "问题不可回答，候选回答明确说明资料无相关内容且未编造事实。",
+          "latency_ms": 1788.435,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": null, \"refusal_appropriate\": true, \"reason\": \"问题不可回答，候选回答明确说明资料无相关内容且未编造事实。\"}",
+          "parse_error": null
+        },
+        {
+          "id": "unknown-dinner-allowance",
+          "category": "unanswerable",
+          "answerable": false,
+          "faithful": true,
+          "answer_correct": null,
+          "refusal_appropriate": true,
+          "reason": "候选回答准确指出资料未提供晚餐报销额度，未编造事实，且明确说明资料无答案。",
+          "latency_ms": 1503.957,
+          "judge_output_preview": "{\"faithful\": true, \"answer_correct\": null, \"refusal_appropriate\": true, \"reason\": \"候选回答准确指出资料未提供晚餐报销额度，未编造事实，且明确说明资料无答案。\"}",
+          "parse_error": null
+        }
+      ],
+      "prompt_version": "rag-faithfulness-v1",
+      "model": "deepseek-chat",
+      "temperature": 0.0
+    },
+    "review_cases": [
+      {
+        "id": "unknown-dinner-allowance",
+        "category": "unanswerable",
+        "question": "晚餐报销额度的上限是多少？",
+        "answerable": false,
+        "issues": [
+          "未命中资料不足的拒答规则"
+        ],
+        "answer_preview": "根据资料，出差住宿标准中，一线城市每晚不超过 800 元，二线城市不超过 500 元。但资料中未明确提及“晚餐报销额度”的具体上限。 [资料1] [资料2]",
+        "judge_note": "候选回答准确指出资料未提供晚餐报销额度，未编造事实，且明确说明资料无答案。"
+      }
+    ]
+  }
+}

@@ -4,6 +4,7 @@
     .venv/bin/python -m evals.run_rag_eval --embedding-provider mock
     .venv/bin/python -m evals.run_rag_eval --embedding-provider local --output evals/baseline.md
     LLM_API_KEY=... .venv/bin/python -m evals.run_rag_eval --with-generation
+    LLM_API_KEY=... .venv/bin/python -m evals.run_rag_eval --with-generation --with-llm-judge
 """
 from __future__ import annotations
 
@@ -64,6 +65,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="调用真实 LLM，额外评估答案关键词、引用与拒答；mock 模式会拒绝运行",
     )
+    parser.add_argument(
+        "--with-llm-judge",
+        action="store_true",
+        help="在真实生成后再调用 LLM 评估忠实度/正确性/拒答；必须同时使用 --with-generation",
+    )
+    parser.add_argument(
+        "--judge-model",
+        help="覆盖 EVAL_JUDGE_MODEL；未设置时复用候选回答模型",
+    )
     parser.add_argument("--output", type=Path, help="将 Markdown 报告写入指定路径")
     parser.add_argument("--json-output", type=Path, help="将完整明细 JSON 写入指定路径")
     parser.add_argument(
@@ -72,6 +82,14 @@ def parse_args() -> argparse.Namespace:
         help="保留 source 以 __eval__ 开头的临时评测文档，便于手工调试",
     )
     return parser.parse_args()
+
+
+def validate_args(args: argparse.Namespace) -> None:
+    """在索引临时评测语料前阻止无效的付费评测组合。"""
+    if args.with_llm_judge and not args.with_generation:
+        raise ValueError("--with-llm-judge 必须与 --with-generation 一起使用")
+    if args.judge_model and not args.with_llm_judge:
+        raise ValueError("--judge-model 必须与 --with-llm-judge 一起使用")
 
 
 def configure_environment(args: argparse.Namespace) -> None:
@@ -93,14 +111,16 @@ async def run(args: argparse.Namespace) -> dict:
         build_evaluation_report,
         cleanup_evaluation_corpus,
         evaluate_generation,
+        evaluate_llm_judge,
         evaluate_retrieval,
         load_eval_cases,
         prepare_evaluation_corpus,
         render_markdown_report,
         validate_retrieval_thresholds,
     )
-    from app.llm_client import get_llm_client
+    from app.llm_client import LLMClient, get_llm_client
 
+    validate_args(args)
     get_settings.cache_clear()
     reset_embedding_client()
     cases = load_eval_cases(args.dataset)
@@ -108,7 +128,12 @@ async def run(args: argparse.Namespace) -> dict:
     source_marker = f"__eval__{uuid4().hex}_{args.corpus.name}"
     document = None
     generation_results = None
+    judge_results = None
     client = None
+    judge_client = None
+    judge_model = None
+    generation_temperature = 0.0
+    judge_temperature = 0.0
 
     try:
         await init_db()
@@ -130,7 +155,32 @@ async def run(args: argparse.Namespace) -> dict:
                 )
                 if args.with_generation:
                     client = get_llm_client()
-                    generation_results = await evaluate_generation(client, retrieval_results)
+                    generation_results = await evaluate_generation(
+                        client,
+                        retrieval_results,
+                        temperature=generation_temperature,
+                    )
+                    if args.with_llm_judge:
+                        judge_model = args.judge_model or settings.eval_judge_model or client.model
+                        if judge_model == client.model:
+                            judge_client = client
+                        else:
+                            judge_client = LLMClient(
+                                base_url=settings.llm_base_url,
+                                api_key=settings.llm_api_key,
+                                model=judge_model,
+                                timeout=settings.llm_timeout_seconds,
+                                max_connections=settings.llm_max_connections,
+                                max_keepalive_connections=settings.llm_max_keepalive_connections,
+                                max_retries=settings.llm_max_retries,
+                                retry_base_delay=settings.llm_retry_base_delay,
+                                retry_max_delay=settings.llm_retry_max_delay,
+                            )
+                        judge_results = await evaluate_llm_judge(
+                            judge_client,
+                            generation_results,
+                            temperature=judge_temperature,
+                        )
 
                 report = build_evaluation_report(
                     retrieval_results,
@@ -140,6 +190,13 @@ async def run(args: argparse.Namespace) -> dict:
                     top_k=args.top_k,
                     retrieval_mode=args.retrieval_mode,
                     generation_results=generation_results,
+                    generation_model=client.model if client is not None else None,
+                    generation_temperature=(
+                        generation_temperature if generation_results is not None else None
+                    ),
+                    judge_results=judge_results,
+                    judge_model=judge_model,
+                    judge_temperature=judge_temperature if judge_results is not None else None,
                 )
                 validate_retrieval_thresholds(
                     report,
@@ -150,6 +207,8 @@ async def run(args: argparse.Namespace) -> dict:
                 if document is not None and not args.keep_corpus:
                     await cleanup_evaluation_corpus(session, document_id=document.id)
     finally:
+        if judge_client is not None and judge_client is not client:
+            await judge_client.aclose()
         if client is not None:
             await client.aclose()
         await get_embedding_client().aclose()

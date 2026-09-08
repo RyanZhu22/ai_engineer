@@ -22,7 +22,7 @@
 
 ## Generation and citation metrics
 
-未执行。使用真实 `LLM_API_KEY` 后加 `--with-generation`，才会测回答关键词、引用与拒答。
+未执行。使用真实 `LLM_API_KEY` 后加 `--with-generation`，才会测回答关键词、引用与拒答；再加 `--with-llm-judge` 可测语义忠实度。
 
 ## Retrieval cases requiring review
 

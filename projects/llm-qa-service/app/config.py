@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     llm_base_url: str = ""  # 留空 = OpenAI 官方 API
     llm_api_key: str = ""   # 空 = mock 模式（无 Key 也能跑通全流程）
     llm_model: str = "gpt-4o-mini"
+    # 仅供 evals/run_rag_eval.py 的可选 LLM 裁判使用；留空则复用 llm_model。
+    eval_judge_model: str = ""
 
     # ---------- LLM 客户端（连接池 + 重试） ----------
     # 连接池：HTTP 连接 TCP 握手 + TLS 协商成本高，长连接复用是关键

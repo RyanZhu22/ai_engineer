@@ -342,13 +342,13 @@ select(Conversation).options(selectinload(Conversation.messages))
 |------|------|
 | `app/llm_client.py` | OpenAI 兼容协议、mock 模式、SSE 流式格式、function calling、连接池上限 + 指数退避重试 |
 | `app/agent.py` | Tool 抽象、Agent 循环、内置工具、安全 eval |
-| `app/evaluation.py` | 评测集校验、Evidence Hit@K / MRR / 延迟、可选回答与引用评测、CI 阈值 |
+| `app/evaluation.py` | 评测集校验、Evidence Hit@K / MRR / 延迟、可选回答/引用/资料不足拒答/LLM 裁判、CI 阈值与失败样本报告 |
 | `app/main.py` | liveness/readiness、SSE 协议、会话"先存后读"的坑、agent 端点 |
 | `app/history.py` | 文件存储取舍（注释声明生产应换数据库） |
 | `app/config.py` | secret 不进代码库、mock 模式 |
 | `Dockerfile` | 分层缓存顺序、非 root 用户 |
 | `tests/test_api.py` | 单例重置原因 |
-| `evals/run_rag_eval.py` | 临时评测语料隔离、执行入口、mock / local / live 三种运行方式 |
+| `evals/run_rag_eval.py` | 临时评测语料隔离、执行入口、mock / local / live + 可选 LLM 裁判 |
 
 ### 待落实 TODO（补充到代码时勾选）
 
@@ -359,6 +359,8 @@ select(Conversation).options(selectinload(Conversation.messages))
 - [x] Agent 开发（tool calling / 工具循环，3 个内置工具）
 - [x] MCP（Model Context Protocol）接入（stdio / Streamable HTTP，server + tool allow-list）
 - [x] RAG 检索评测集 + 基线（31 条人工标注、Hit@K / MRR / P95、CI 回归门槛）
+- [x] LLM-as-a-judge 评测框架（忠实度/正确性/拒答、严格 JSON 字段校验、模型与提示词元数据）
+- [x] 生成失败样本诊断（宽容的资料不足拒答规则 + 报告列出具体回答与裁判理由）
 - [ ] 会话按 user_id 隔离（目前无用户体系，所有会话平铺）
 - [ ] 前端加"清空历史"确认提示，避免误删
 - [ ] 数据库迁移工具（Alembic）替代 create_all
@@ -444,10 +446,10 @@ select(Conversation).options(selectinload(Conversation.messages))
 - 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动
 
 **Q12：怎么知道 Agent 开发做好了？怎么测试？（三层测试法）**
-- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 44 个 pytest，GitHub Actions push 自动跑。
+- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 51 个 pytest，GitHub Actions push 自动跑。
 - **第 2 层 · 手动 API 测试（验证真实模型决策）**：mock 只证明循环逻辑对，不证明真实模型会调对工具。本地起服务 + 真实 key，逐场景 curl 验证：算术→calculator、时间→get_current_time、手册问题→search_knowledge_base、多步问题→连续调用多个工具。
 - **第 3 层 · 云端端到端（验证部署）**：`/health` UP → `/mcp/tools` 列出 allow-list 工具 → `/agent` 真实混合调用内置 + MCP 工具。
-- **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位）；回答质量则由独立的 31 条评测集衡量检索证据命中、排名与延迟。真实 LLM 再测答案关键词、引用与拒答，不能把 mock 回复当质量分数。
+- **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位）；回答质量则由独立的 31 条评测集衡量检索证据命中、排名与延迟。真实 LLM 再测答案关键词、引用、拒答与可选的资料忠实度裁判，不能把 mock 回复或单次裁判分数当质量结论。
 - **安全行为必测**：未配置 MCP 时请求 `use_mcp: true` 必须 503 明确报错，而非静默忽略；危险表达式、超长参数、迭代超限全部有明确错误路径。
 
 ---
@@ -463,7 +465,8 @@ select(Conversation).options(selectinload(Conversation.messages))
 | 层级 | 是否需要真实 LLM | 测什么 | 当前状态 |
 |---|---|---|---|
 | 检索基线 | 否 | Evidence Hit@1/@3/@K、MRR、mean/P50/P95 延迟 | 已接入 CI |
-| 回答与引用 | 是 | 关键事实覆盖、引用编号有效性、引用是否指向正确证据、不可回答问题的拒答 | 命令已实现，需配置真实 Key 运行 |
+| 回答与引用 | 是 | 关键事实覆盖、引用编号有效性、引用是否指向正确证据、不可回答问题是否因资料不足而拒答 | 命令已实现，失败回答会直接列入报告 |
+| LLM-as-a-judge | 是（每题额外一次调用） | 回答是否忠实于已检索资料、关键事实正确性、不可回答题的拒答恰当性 | 已用 `deepseek-chat` 完成首份基线；31/31 JSON 解析成功，全部通过 |
 
 ### 数据集设计
 
@@ -474,6 +477,14 @@ select(Conversation).options(selectinload(Conversation.messages))
 3. `expected_answer_keywords`：真实 LLM 回答中至少应出现的关键事实。
 
 这使得评测能够区分“检索没找到资料”和“资料找到了但模型没答对”。
+
+### 为什么还需要 LLM-as-a-judge
+
+关键词、引用编号和拒答短语都是低成本、可重复的硬指标，但不能完整回答“这段自然语言是否真的只依据检索资料作答”。因此评测命令新增可选的 `--with-llm-judge`：先得到候选回答，再把**问题、检索资料、人工标注和候选回答**交给裁判模型。裁判只允许返回经过严格 JSON 字段校验的 `faithful`、`answer_correct`、`refusal_appropriate` 和简短理由；格式错误的结果不会被算作通过。
+
+不可回答题的离线规则不再只认“知识库中没有找到相关内容”这一固定句式。它会接受“资料中未明确提及”“资料不足，无法确认”等**明确把拒答归因于资料不足**的表达；单纯说“公司不提供该政策”或“我不知道”仍不会通过。每次真实生成报告还会列出未通过关键词、引用、拒答规则或裁判检查的具体回答，便于人工复核。
+
+为了让分数可解释、可复跑，报告保存候选模型、裁判模型、两者 temperature、裁判提示词版本、每题裁判输出预览和 JSON 解析成功率。解析成功率必须先于分数阅读；比较两次结果时必须固定数据集、检索配置、候选模型、裁判模型和提示词版本。它是人工复核的优先级信号，不取代人工抽样，也不进入离线 CI 门槛。
 
 ### 当前基线与混合检索结果（2026-09-02）
 
@@ -487,6 +498,8 @@ select(Conversation).options(selectinload(Conversation.messages))
 | local bge hybrid | 100.0% | 100.0% | 1.0000 | 14.51 ms |
 
 原始 `travel-tier2-hotel` 的标注短语含有语料中不存在的“每晚”二字，会制造假的漏召回；现在由测试保证每条人工证据确实存在于评测语料。修正后，hybrid 将 mock Hit@1 从 89.7% 提升到 96.5%，本地 bge 从 96.5% 提升到 100.0%。mock 仍有 `travel-submit-deadline` 排第 2，但真实中文 embedding 已全部第一名命中。
+
+首份真实生成基线（`deepseek-chat`、temperature 0.0、同一模型兼任候选与裁判）也已完成：29/29 可回答题关键词、引用和裁判关键事实正确性通过；2/2 不可回答题通过资料不足拒答和裁判恰当性；31/31 裁判输出 JSON 解析成功；生成报告没有触发任何自动复核项。该结果证明当前链路稳定，但同模型自评不等于独立准确率；后续可用另一模型交叉复核。
 
 ### Hybrid 检索如何工作
 
@@ -506,4 +519,4 @@ GitHub Actions 运行 mock + hybrid 的离线评测，并设置 `Hit@1 >= 0.95`�
 
 ### 面试讲法（30 秒版）
 
-> “我不会仅凭 demo 判断 RAG 好不好。我把员工手册问题做成了 31 条版本化评测集，并用测试保证每条证据真实存在。检索先取 pgvector 与 BM25 候选，再对候选事实句 rerank，并用 RRF 融合排名；mock Hit@1 从 89.7% 提升到 96.5%，本地中文 embedding 到 100%。CI 不调用 LLM 也会卡住检索回归；真实 LLM 模式再测关键事实、引用和拒答。”
+> “我不会仅凭 demo 判断 RAG 好不好。我把员工手册问题做成了 31 条版本化评测集，并用测试保证每条证据真实存在。检索先取 pgvector 与 BM25 候选，再对候选事实句 rerank，并用 RRF 融合排名；mock Hit@1 从 89.7% 提升到 96.5%，本地中文 embedding 到 100%。CI 不调用 LLM 也会卡住检索回归；真实 LLM 模式再测关键事实、引用、拒答，并可用独立裁判检查回答是否忠实于检索资料。”
