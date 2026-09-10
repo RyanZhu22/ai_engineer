@@ -23,14 +23,22 @@
 | **混合检索（BM25 + 向量 + 句级 rerank）** | ✅ | 09-02 | RRF 融合；mock Hit@1 96.5%，本地 bge Hit@1 100.0% |
 | **LLM-as-a-judge 生成评测框架** | ✅ | 09-02 | 忠实度/正确性/拒答；严格 JSON 字段校验；记录模型、temperature、提示词版本；不进 CI |
 | **首份真实 LLM 生成质量基线** | ✅ | 09-02 | deepseek-chat：检索/关键词/引用/资料不足拒答/裁判均 100%；31/31 裁判 JSON 解析成功，0 条生成复核项 |
-| **P0-1 认证与账号级资源隔离** | ✅（待提交） | 09-10 | scrypt 登录、8 小时 bearer session、owner 过滤、MCP 权限、跨账号测试；本地 54 个 pytest 通过 |
+| **P0-1 认证与账号级资源隔离** | ✅（已提交，待推送） | 09-10 | scrypt 登录、8 小时 bearer session、owner 过滤、MCP 权限、跨账号测试；本地 54 个 pytest 通过；`78f337d` 未推送 |
+
+## 🚧 进行中
+
+| 任务 | 状态 | 说明 |
+|------|------|------|
+| pgvector HNSW 索引 + 检索基准 | 🚧 代码完成，报告未完成 | `rag_hnsw_*` 参数、HNSW 索引/会话 GUC、`ef_search` 覆盖 + `evals/bench_retrieval.py`；mock 报告：20005 切片 P95 70.3ms→2.55ms（27.6×）；真实 bge 报告因本机内存颠簸中止，重跑见 `docs/project-status.md` §4/§5；改动未提交 |
 
 ## 待办
 
 - [x] 简历更新（09-02）
 - [x] 项目总结与面试问答整理（09-02）
+- [ ] 重跑本地 bge HNSW 基准，产出 `evals/retrieval-bench.md`（用 nohup + 日志，规范见 `docs/vibe-coding-workflow.md` §3）
+- [ ] 给 HNSW 代码补单测并提交（代码 + 脚本 + 报告 + 文档）
 - [ ] 使用独立裁判模型做一次交叉复核（可选，需要 API Key 与调用预算）
-- [ ] 提交并推送 P0-1，重新部署 Render 后验证登录和隔离
+- [ ] 推送 P0-1（`78f337d`）并重新部署 Render 后验证登录和隔离
 - [ ] 用 Alembic 管理生产数据库 schema 迁移
 - [ ] 前端清空历史增加二次确认
 - [ ] 登录、LLM 接口限流与基础审计/可观测性

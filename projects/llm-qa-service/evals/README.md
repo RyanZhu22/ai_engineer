@@ -57,6 +57,26 @@ docker compose up -d
   --retrieval-mode vector
 ```
 
+### 向量索引基准：精确扫描 vs pgvector HNSW
+
+`bench_retrieval.py` 回答“索引值不值”：同一批查询分别跑精确全表扫描和 HNSW，输出规模扩展趋势、`ef_search` 召回/延迟曲线，以及带 owner 过滤时 `iterative_scan` 的对比。延迟只统计数据库检索，不含 embedding 推理。
+
+```bash
+# 冒烟：mock 向量，秒级；只验证机制，不作语义结论
+.venv/bin/python -m evals.bench_retrieval \
+  --sizes 2000 --embedding-provider mock \
+  --output /tmp/bench-mock.md
+
+# 真实 bge 向量：先释放内存，后台运行并落盘日志（长任务规范见 ../../docs/vibe-coding-workflow.md §3）
+nohup .venv/bin/python -u -m evals.bench_retrieval \
+  --sizes 2000 --queries 15 --passes 1 --embedding-provider local \
+  --output evals/retrieval-bench.md > /tmp/bench.log 2>&1 &
+tail -f /tmp/bench.log
+```
+
+- 基准数据用 `source='__bench_retrieval__'` 隔离，正常结束自动清理；异常退出可重跑或手工删除该 source 的文档。
+- 报告里的 Recall@K 是“ANN 结果与精确扫描结果的交集”，衡量索引保真度；语义质量仍看 `run_rag_eval.py` 的证据标注集，两者不要混用。
+
 ### 真实中文 embedding 基线
 
 使用项目默认的 `BAAI/bge-small-zh-v1.5`（首次运行会下载模型）：

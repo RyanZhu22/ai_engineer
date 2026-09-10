@@ -61,6 +61,21 @@ class Settings(BaseSettings):
     rag_bm25_weight: float = Field(default=1.0, gt=0, le=5)
     rag_sentence_bm25_weight: float = Field(default=1.0, gt=0, le=5)
 
+    # ---------- 向量索引（pgvector HNSW） ----------
+    # 没有索引时 `ORDER BY embedding <=> $1` 是精确全表扫描（O(N)，召回 100%）。
+    # HNSW 是近似最近邻（ANN）：把召回换延迟，参数决定这条权衡曲线。
+    # m / ef_construction 只在建索引时生效，改动后需要重建索引。
+    rag_hnsw_m: int = Field(default=16, ge=2, le=100)
+    rag_hnsw_ef_construction: int = Field(default=64, ge=4, le=1000)
+    # ef_search 是“查询时”旋钮：每个请求都能调，越大召回越高、延迟越高。
+    rag_hnsw_ef_search: int = Field(default=40, ge=1, le=1000)
+    # 带 WHERE 过滤（本项目每个查询都带 owner 过滤）时，HNSW 只取 ef_search 个候选再过滤，
+    # 过滤性强的时候会返回不足 top_k 条 → 召回塌陷。iterative_scan 让索引继续往下扫。
+    # off | relaxed_order（更快，顺序可能不严格）| strict_order（严格按距离，稍慢）
+    rag_hnsw_iterative_scan: Literal["off", "relaxed_order", "strict_order"] = "relaxed_order"
+    # iterative_scan 单次查询最多扫描多少行，防止参数异常时拖垮数据库。
+    rag_hnsw_max_scan_tuples: int = Field(default=20000, ge=100, le=1_000_000)
+
     # ---------- MCP（外部工具接入） ----------
     # JSON object。键为 server 名；每个 server 必须显式声明 allowed_tools。
     # 示例见 .env.example / README。留空时 Agent 只使用本地内置工具。

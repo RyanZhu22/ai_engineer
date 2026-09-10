@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import get_settings
@@ -292,12 +292,36 @@ def reciprocal_rank_fusion(
     )
 
 
+async def apply_hnsw_search_settings(session: AsyncSession, ef_search: int | None = None) -> None:
+    """在事务内覆盖 HNSW 查询参数（SET LOCAL，事务结束自动失效，不污染连接池）。
+
+    应用正常请求路径依赖连接建立时设置的会话默认值（见 db._apply_vector_session_defaults），
+    因此这个函数只给需要“同一批查询用不同参数对比”的场景用：检索调试端点与基准脚本。
+
+    - ``ef_search``：候选队列大小，召回/延迟的运行时旋钮
+    - ``iterative_scan``：带 WHERE 过滤时继续往下扫索引，修复“过滤后候选不足”
+    """
+    settings = get_settings()
+    if ef_search is not None:
+        if not 1 <= ef_search <= 1000:
+            raise ValueError("ef_search 必须在 1 到 1000 之间")
+    # 事务外的 SET LOCAL 会被 Postgres 忽略并告警，所以先确保处于事务中。
+    if not session.in_transaction():
+        await session.begin()
+    # 参数已经过上面的范围校验 / 来自 Literal 配置，不存在注入面。
+    if ef_search is not None:
+        await session.execute(text(f"SET LOCAL hnsw.ef_search = {int(ef_search)}"))
+    await session.execute(text(f"SET LOCAL hnsw.iterative_scan = {settings.rag_hnsw_iterative_scan}"))
+    await session.execute(text(f"SET LOCAL hnsw.max_scan_tuples = {int(settings.rag_hnsw_max_scan_tuples)}"))
+
+
 async def search_chunks(
     session: AsyncSession,
     query: str,
     top_k: int = 4,
     document_ids: Sequence[int] | None = None,
     retrieval_mode: RetrievalMode | None = None,
+    ef_search: int | None = None,
 ) -> list[dict[str, Any]]:
     """检索知识库片段，支持 ``vector`` 与默认 ``hybrid`` 两种模式。
 
@@ -316,6 +340,9 @@ async def search_chunks(
         raise ValueError("retrieval_mode 必须是 vector 或 hybrid")
 
     scope = list(document_ids) if document_ids is not None else None
+    # 正常路径不额外发 SET：会话默认值已在连接建立时设好，这里只处理显式覆盖。
+    if ef_search is not None:
+        await apply_hnsw_search_settings(session, ef_search)
     vector_limit = max(top_k, settings.rag_vector_candidate_k)
     vector_hits = await _search_vector_candidates(session, query, limit=vector_limit, document_ids=scope)
     if mode == "vector":
@@ -346,10 +373,24 @@ async def _search_vector_candidates(
     limit: int,
     document_ids: Sequence[int] | None,
 ) -> list[dict[str, Any]]:
-    emb_client = get_embedding_client()
-    q_vec = await emb_client.embed_one(query)
+    q_vec = await get_embedding_client().embed_one(query)
+    return await vector_candidates(session, q_vec, limit=limit, document_ids=document_ids)
 
+
+async def vector_candidates(
+    session: AsyncSession,
+    q_vec: Sequence[float],
+    *,
+    limit: int,
+    document_ids: Sequence[int] | None = None,
+) -> list[dict[str, Any]]:
+    """用已有查询向量做 ANN 检索。
+
+    单独抽出来是为了让基准脚本能把 embedding 耗时和“数据库检索耗时”分开度量——
+    比较索引效果时，把模型推理时间混进来会污染结论。
+    """
     # cosine_distance 越小越相似（pgvector 的 <=> 算子）；score 在 SQL 端计算。
+    # 该 ORDER BY 与索引的 vector_cosine_ops 算子类匹配，HNSW 索引才会被使用。
     stmt = (
         select(Chunk, Document.title, (1 - Chunk.embedding.cosine_distance(q_vec)).label("score"))
         .join(Document, Chunk.document_id == Document.id)

@@ -74,6 +74,9 @@ class ChatResponse(BaseModel):
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000)
     top_k: int = Field(default=4, ge=1, le=20)
+    # 调试用：临时覆盖 HNSW 候选队列大小，对比不同 ef_search 下的召回与延迟。
+    # 留空则用服务端配置的默认值（rag_hnsw_ef_search）。
+    ef_search: int | None = Field(default=None, ge=1, le=1000)
 
 
 # ---------- Agent（tool calling）----------
@@ -402,9 +405,20 @@ async def delete_document(doc_id: int, session: AsyncSession = Depends(get_db)):
 
 @app.post("/documents/search")
 async def search_documents(req: SearchRequest, session: AsyncSession = Depends(get_db)):
-    """RAG 检索调试端点：看给定 query 能召回哪些切片。"""
-    hits = await rag.search_chunks(session, req.query, req.top_k)
-    return {"query": req.query, "hits": hits}
+    """RAG 检索调试端点：看给定 query 能召回哪些切片。
+
+    传 ``ef_search`` 可以现场对比不同 HNSW 候选队列大小的效果，返回体会带实际生效值。
+    """
+    hits = await rag.search_chunks(session, req.query, req.top_k, ef_search=req.ef_search)
+    settings = get_settings()
+    return {
+        "query": req.query,
+        "hits": hits,
+        "hnsw": {
+            "ef_search": req.ef_search or settings.rag_hnsw_ef_search,
+            "iterative_scan": settings.rag_hnsw_iterative_scan,
+        },
+    }
 
 
 # ---------- 前端页面 ----------

@@ -5,7 +5,7 @@
 >
 > 📊 实时市场数据见 [`market-research-2026.md`](market-research-2026.md)（2026-08-10 抓取：79 个真实职位 + 29 个薪资）
 
-跨终端继续项目时，先看 [`docs/project-status.md`](docs/project-status.md)；它记录当前工作区、验证结果、文件入口和下一步优先级。
+跨终端继续项目时，先看 [`docs/project-status.md`](docs/project-status.md)；它记录当前工作区、验证结果、文件入口和下一步优先级。跨端开工/收尾与长任务规范见 [`docs/vibe-coding-workflow.md`](docs/vibe-coding-workflow.md)。
 
 ---
 
