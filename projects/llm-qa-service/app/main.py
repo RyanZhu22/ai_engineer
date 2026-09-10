@@ -1,6 +1,7 @@
 """FastAPI 入口 - LLM QA Service。
 
 功能：
+  - /auth          密码登录、当前账号和退出登录
   - /chat          普通聊天（完整回复，支持 RAG）
   - /chat/stream   流式聊天（SSE，支持 RAG）
   - /history       会话历史 CRUD（PostgreSQL 持久化）
@@ -10,7 +11,8 @@
 import json
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, Request
+from .auth import AuthenticationMiddleware, router as auth_router, require_mcp
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -45,6 +47,8 @@ app = FastAPI(
     version="0.5.0",
     lifespan=lifespan,
 )
+app.add_middleware(AuthenticationMiddleware)
+app.include_router(auth_router)
 
 
 # ---------- 请求/响应模型 ----------
@@ -107,14 +111,7 @@ async def health():
         "service": "llm-qa-service",
         "env": settings.app_env,
         "mode": "mock" if settings.mock_mode else "live",
-        "rag": {"documents": await _count_documents()},
     }
-
-
-async def _count_documents() -> int:
-    from .db import get_session_factory
-    async with get_session_factory()() as session:
-        return len((await session.execute(select(Document.id))).scalars().all())
 
 
 # ---------- 构建消息上下文 ----------
@@ -140,8 +137,7 @@ async def chat(
     if req.use_rag:
         hits = await rag.search_chunks(session, req.message, req.top_k)
         sources = hits
-        if hits:
-            system_prompt = rag.build_rag_prompt(req.message, hits)
+        system_prompt = rag.build_rag_prompt(req.message, hits)
 
     messages = _build_messages(system_prompt, conv)
     reply = await client.chat(messages, temperature=req.temperature)
@@ -164,8 +160,7 @@ async def chat_stream(
     if req.use_rag:
         hits = await rag.search_chunks(session, req.message, req.top_k)
         sources = hits
-        if hits:
-            system_prompt = rag.build_rag_prompt(req.message, hits)
+        system_prompt = rag.build_rag_prompt(req.message, hits)
 
     messages = _build_messages(system_prompt, conv)
 
@@ -217,10 +212,12 @@ async def _add_user_message(conv_id: str, message: str) -> dict:
 @app.post("/agent", response_model=AgentResponse)
 async def agent_chat(
     req: AgentRequest,
+    request: Request,
     session: AsyncSession = Depends(get_db),
     client: LLMClient = Depends(get_llm_client),
 ):
     """Agent 问答：模型自主决定是否调用工具（检索/计算/查时间），循环直到给出最终回答。"""
+    require_mcp(request, req.use_mcp)
     conv = await _get_or_create_conversation(req.conversation_id)
     conv = await _add_user_message(conv["id"], req.message)
 
@@ -247,6 +244,7 @@ async def agent_chat(
 @app.post("/agent/stream")
 async def agent_stream(
     req: AgentRequest,
+    request: Request,
     session: AsyncSession = Depends(get_db),
     client: LLMClient = Depends(get_llm_client),
 ):
@@ -258,6 +256,7 @@ async def agent_stream(
       - delta：最终回答（agent 循环结束后一次性给出）
       - done：结束
     """
+    require_mcp(request, req.use_mcp)
     conv = await _get_or_create_conversation(req.conversation_id)
     conv = await _add_user_message(conv["id"], req.message)
     messages = _build_messages(AGENT_SYSTEM_PROMPT, conv)
@@ -294,8 +293,9 @@ async def agent_stream(
 
 
 @app.get("/mcp/tools")
-async def list_mcp_tools():
+async def list_mcp_tools(request: Request):
     """列出部署者 allow-list 中可被 Agent 使用的 MCP 工具（不执行工具）。"""
+    require_mcp(request, True)
     try:
         async with MCPToolProvider.from_settings(enabled=True) as provider:
             return {

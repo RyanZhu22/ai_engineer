@@ -2,6 +2,8 @@
 
 > 记录开发过程中的技术决策、踩过的坑、概念讲解与面试素材。
 > 用途：以后写代码时引用这里的模式，补充到代码注释或 README。
+>
+> 当前代码、验证结果和下一步优先级见 [`project-status.md`](project-status.md)。
 
 ---
 
@@ -156,13 +158,13 @@ CREATE INDEX idx_messages_conv ON messages(conversation_id);
 
 ### 本项目现状与升级路径
 
-- 当前：`history.py` 已用 PostgreSQL + SQLAlchemy async（档次 3），conversations/messages 表关系型存储。
-- RAG：documents/chunks 表 + pgvector（Vector 列），对话与向量同库。
-- 下一步：Alembic 迁移、user_id 多租户；检索已升级为 hybrid + 句级 rerank。
+- 当前：`history.py` 已用 PostgreSQL + SQLAlchemy async（档次 3），conversations/messages 表关系型存储；P0-1 已加入账号登录和 owner 过滤。
+- RAG：documents/chunks 表 + pgvector（Vector 列），对话与向量同库；文档、切片和检索结果按账号隔离。
+- 下一步：Alembic 迁移、多租户组织/部门权限和企业 SSO；检索已升级为 hybrid + 句级 rerank。
 
 ### 面试素材
 
-> "我在项目里用 PostgreSQL 做对话持久化，按 user_id 关联会话，支持跨设备、跨会话查询——这解决了我司 AI studio 关闭就丢历史的痛点。"
+> "我在项目里用 PostgreSQL 做对话持久化，按 owner_id 关联会话，支持跨设备、跨会话查询；认证中间件和查询过滤保证账号之间不能互相读取。"
 
 ---
 
@@ -361,7 +363,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 - [x] RAG 检索评测集 + 基线（31 条人工标注、Hit@K / MRR / P95、CI 回归门槛）
 - [x] LLM-as-a-judge 评测框架（忠实度/正确性/拒答、严格 JSON 字段校验、模型与提示词元数据）
 - [x] 生成失败样本诊断（宽容的资料不足拒答规则 + 报告列出具体回答与裁判理由）
-- [ ] 会话按 user_id 隔离（目前无用户体系，所有会话平铺）
+- [x] 账号登录与会话/文档按 owner_id 隔离（bearer session、跨用户 API/RAG/Agent 测试）
 - [ ] 前端加"清空历史"确认提示，避免误删
 - [ ] 数据库迁移工具（Alembic）替代 create_all
 - [x] 检索重排（句级 BM25 rerank）与混合检索（BM25 + 向量 RRF）
@@ -446,7 +448,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 - 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动
 
 **Q12：怎么知道 Agent 开发做好了？怎么测试？（三层测试法）**
-- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 51 个 pytest，GitHub Actions push 自动跑。
+- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 54 个 pytest，GitHub Actions push 自动跑。
 - **第 2 层 · 手动 API 测试（验证真实模型决策）**：mock 只证明循环逻辑对，不证明真实模型会调对工具。本地起服务 + 真实 key，逐场景 curl 验证：算术→calculator、时间→get_current_time、手册问题→search_knowledge_base、多步问题→连续调用多个工具。
 - **第 3 层 · 云端端到端（验证部署）**：`/health` UP → `/mcp/tools` 列出 allow-list 工具 → `/agent` 真实混合调用内置 + MCP 工具。
 - **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位）；回答质量则由独立的 31 条评测集衡量检索证据命中、排名与延迟。真实 LLM 再测答案关键词、引用、拒答与可选的资料忠实度裁判，不能把 mock 回复或单次裁判分数当质量结论。

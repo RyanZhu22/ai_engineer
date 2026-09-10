@@ -32,6 +32,18 @@ def client():
     llm_client_mod._client = None
     embedding_client_mod._client = None
     with TestClient(app) as c:
+        from app.auth import hash_password
+        from app.db import User, get_session_factory
+        import uuid
+        username = uuid.uuid4().hex
+        async def provision():
+            async with get_session_factory()() as session:
+                session.add(User(id=username, username=username, password_hash=hash_password("test-password-123"), can_use_mcp=True))
+                await session.commit()
+        c.portal.call(provision)
+        response = c.post('/auth/login', json={'username': username, 'password': 'test-password-123'})
+        assert response.status_code == 200
+        c.headers['Authorization'] = 'Bearer ' + response.json()['access_token']
         yield c
 
 

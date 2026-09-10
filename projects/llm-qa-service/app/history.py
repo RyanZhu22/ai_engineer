@@ -1,10 +1,10 @@
 """会话历史存储 - PostgreSQL（SQLAlchemy async）。
 
 对标技术笔记 docs/technical-notes.md 第 2 节：
-  - 从 JSON 文件升级到企业级关系型存储（多实例共享、事务、可扩展 user_id）
+  - 从 JSON 文件升级到企业级关系型存储（多实例共享、事务、按账号隔离）
   - 异步 session，避免阻塞事件循环
 
-接口与旧 JSON 版保持一致，main.py 无需改动业务逻辑。
+接口与旧 JSON 版保持一致；账号过滤由数据库查询事件统一执行。
 """
 import time
 import uuid

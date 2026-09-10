@@ -510,7 +510,46 @@ body {
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
 </button>
 
+<div id="loginPanel" style="position:fixed;inset:0;z-index:9999;background:#181818;color:white;display:grid;place-items:center">
+  <form id="loginForm" style="display:grid;gap:16px;width:300px">
+    <h2>登录知识库</h2>
+    <label>用户名 <input id="loginName" autocomplete="username" required maxlength="100"></label>
+    <label>密码 <input id="loginPassword" type="password" autocomplete="current-password" required maxlength="256"></label>
+    <button type="submit">登录</button><p id="loginError" role="alert"></p>
+    <p>账号由管理员创建。刷新页面后需重新登录。</p>
+  </form>
+</div>
+<button id="logoutButton" style="position:fixed;right:16px;top:12px;z-index:1000" hidden>退出登录</button>
 <script>
+// Keep bearer tokens in memory. Do not persist credentials in localStorage.
+let accessToken = null;
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (url, options = {}) => {
+  const target = new URL(url, window.location.href);
+  const headers = new Headers(options.headers);
+  if (accessToken && target.origin === window.location.origin) headers.set('Authorization', `Bearer ${accessToken}`);
+  const response = await nativeFetch(url, {...options, headers});
+  if (response.status === 401 && accessToken) window.location.reload();
+  return response;
+};
+document.getElementById('loginForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const error = document.getElementById('loginError');
+  error.textContent = '';
+  try {
+    const response = await nativeFetch('/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:document.getElementById('loginName').value, password:document.getElementById('loginPassword').value})});
+    if (!response.ok) throw new Error(response.status === 401 ? '用户名或密码错误' : '登录服务不可用');
+    accessToken = (await response.json()).access_token;
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPanel').style.display = 'none';
+    document.getElementById('logoutButton').hidden = false;
+    refreshHistory(); refreshDocs();
+  } catch (e) { error.textContent = e.message; }
+});
+document.getElementById('logoutButton').addEventListener('click', async () => {
+  try { await fetch('/auth/logout', {method:'POST'}); }
+  finally { accessToken = null; window.location.reload(); }
+});
 /* ============ 状态 ============ */
 let currentConvId = null;      // 当前会话 ID
 let isStreaming = false;       // 是否正在生成
@@ -1115,8 +1154,6 @@ async function copyCodeBlock(btn) {
 }
 
 /* ============ 初始化 ============ */
-refreshHistory();
-refreshDocs();
 $('input').addEventListener('input', autoResize);
 $('input').addEventListener('focus', () => {});
 document.addEventListener('keydown', e => {

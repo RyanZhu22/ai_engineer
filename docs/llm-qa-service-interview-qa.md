@@ -8,7 +8,7 @@
 
 **建议回答（约 60 秒）**
 
-我做的是一个企业知识库问答服务。用户上传 txt、Markdown 或 PDF 后，系统会解析、切分、生成中文 embedding 并存到 PostgreSQL/pgvector；提问时先做向量和中文 BM25 混合检索，再在候选块里按事实句 rerank，最后让 OpenAI 兼容的 LLM 基于资料回答，并输出 `[资料1]` 这样的来源。除了普通 RAG，我还实现了 Agent tool calling，可以自主调用知识库、计算器和当前时间工具，也能通过 allow-list 接入 stdio 或 Streamable HTTP MCP。项目用 FastAPI、SSE、Docker、Render 和 GitHub Actions 交付，51 个 pytest 覆盖主要逻辑。
+我做的是一个企业知识库问答服务。用户上传 txt、Markdown 或 PDF 后，系统会解析、切分、生成中文 embedding 并存到 PostgreSQL/pgvector；提问时先做向量和中文 BM25 混合检索，再在候选块里按事实句 rerank，最后让 OpenAI 兼容的 LLM 基于资料回答，并输出 `[资料1]` 这样的来源。除了普通 RAG，我还实现了 Agent tool calling，可以自主调用知识库、计算器和当前时间工具，也能通过 allow-list 接入 stdio 或 Streamable HTTP MCP。项目用 FastAPI、SSE、Docker、Render 和 GitHub Actions 交付，加入账号级资源隔离，54 个 pytest 覆盖主要逻辑。
 
 **可补充结果**：31 条中文评测集；mock hybrid Hit@1 96.5%、Hit@4 100%，local bge hybrid Hit@1 100%；真实 DeepSeek 基线的关键词、引用和资料不足拒答检查均通过。
 
@@ -110,13 +110,13 @@ MCP 返回值也被视为不可信数据，不把它当系统指令执行；适�
 
 **建议回答**
 
-第一层是 51 个 pytest：API、RAG、hybrid 排序、Agent 循环、MCP、LLMClient 重试和评测逻辑；第二层是 mock + hybrid 的离线 CI 门槛；第三层是配置真实 key 后的 API/前端/Render 端到端验证。测试还覆盖危险计算表达式、未知工具、坏参数、循环上限、未配置 MCP 的 503，以及评测报告中的失败回答诊断。
+第一层是 54 个 pytest：API、认证隔离、RAG、hybrid 排序、Agent 循环、MCP、LLMClient 重试和评测逻辑；第二层是 mock + hybrid 的离线 CI 门槛；第三层是配置真实 key 后的 API/前端/Render 端到端验证。测试还覆盖危险计算表达式、未知工具、坏参数、循环上限、未配置 MCP 的 503，以及评测报告中的失败回答诊断。
 
 ### Q18：项目现在还有哪些生产化缺口？
 
 **建议回答**
 
-当前核心链路和评测已完成，但我不会把它包装成“所有企业能力都齐全”。明确的下一步是接入登录和 `user_id` 会话隔离、用 Alembic 管理 schema 迁移、给清空历史增加二次确认，并用独立裁判模型做交叉复核。若知识库规模增长，还要把进程内 BM25 换成带中文分析器的专用索引，并补充可观测性、成本和权限审计。
+当前核心链路和评测已完成，账号级登录和资源隔离也已加入，但还没有企业 SSO、部门/租户权限和管理员后台。下一步是用 Alembic 管理 schema 迁移、给清空历史增加二次确认，并用独立裁判模型做交叉复核。若知识库规模增长，还要把进程内 BM25 换成带中文分析器的专用索引，并补充可观测性、成本和权限审计。
 
 ## E. 面试时要记住的数字与边界
 
@@ -126,9 +126,8 @@ MCP 返回值也被视为不可信数据，不把它当系统指令执行；适�
 | mock hybrid | Hit@1 96.5%，Hit@4 100%，MRR 0.9828 |
 | local bge hybrid | Hit@1/3/4 100%，MRR 1.0000 |
 | live DeepSeek | 关键词、引用、资料不足拒答和 judge 指标均 100%；候选/裁判同模型 |
-| 自动化测试 | 51 个 pytest，CI 还跑 mock hybrid 门槛 |
+| 自动化测试 | 54 个 pytest，CI 还跑 mock hybrid 门槛 |
 | Agent 限制 | 最多 5 轮、12 次工具调用；参数和输出有上限 |
-| 尚未完成 | user_id 隔离、Alembic、清空历史确认、独立裁判交叉复核 |
+| 尚未完成 | 企业 SSO/组织权限、Alembic、清空历史确认、独立裁判交叉复核 |
 
 **不要说：**“LLM judge 100% 证明回答绝对正确”“已经实现多租户”“线上吞吐达到某个数字”。当前证据支持的是：检索和评测链路可复现、这次基线运行通过、核心服务已完成云端验证。
-

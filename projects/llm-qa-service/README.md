@@ -4,6 +4,8 @@
 > 对标香港 AI 工程师 JD：Buyandship（LLM API+RAG+向量数据库）、SCMP（LLM APIs+FastAPI）
 >
 > 📝 技术决策与面试素材见 [`../../docs/technical-notes.md`](../../docs/technical-notes.md)
+>
+> 🔖 当前代码、测试、未完成项和跨终端接手流程见 [`../../docs/project-status.md`](../../docs/project-status.md)
 
 ## 已实现
 
@@ -23,7 +25,7 @@
 | **Agent 工具调用**（检索 / 计算 / 查时间） | ✅ | Agent / tool calling |
 | **MCP 工具接入**（stdio / Streamable HTTP） | ✅ | MCP / 外部系统集成 |
 | ChatGPT 风格前端（暂停/重发/复制/知识库/Agent/MCP 开关） | ✅ | 全栈加分 |
-| 测试 + RAG 评测 | ✅ | 51 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
+| 测试 + RAG 评测 | ✅ | 54 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
 
 ## 快速开始
 
@@ -43,8 +45,30 @@ cp .env.example .env
 source .venv/bin/activate
 uvicorn app.main:app --port 8000 --reload
 
-# 5. 打开 http://localhost:8000 使用；API 文档 /docs
+# 5. 创建第一个登录账号（另开终端执行）
+.venv/bin/python -m app.manage_users alice
+
+# 6. 打开 http://localhost:8000 使用；API 文档 /docs
 ```
+
+## 登录与权限隔离
+
+除首页、健康检查、API 文档和登录接口外，所有 API 都需要 `Authorization: Bearer <token>`。账号由部署者创建，密码使用 scrypt 哈希保存；登录 token 只保存哈希值，默认 8 小时过期，也可以调用退出接口立即撤销。
+
+```bash
+# 如尚未创建账号，命令会交互式读取至少 12 位密码
+.venv/bin/python -m app.manage_users alice
+
+# 登录后复制 access_token，用于后续请求
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"<你的密码>"}'
+
+curl http://localhost:8000/auth/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+会话和文档都绑定到登录账号。列表、详情、删除、RAG 检索、Agent 内置检索和 SSE 请求使用同一套 owner 过滤；账号不能读取或修改其他账号的会话和文档。MCP 还需要账号具有 `can_use_mcp` 权限，只有部署者授予该权限后才能使用。
 
 ## RAG 使用
 
@@ -171,7 +195,7 @@ LLM_API_KEY=... .venv/bin/python -m evals.run_rag_eval \
 浏览器 (index.html)
    │  /chat/stream 或 /agent/stream (SSE)        /documents/upload
    ▼                                 ▼
-FastAPI (main.py) ──► history.py ──► PostgreSQL 16
+AuthenticationMiddleware ──► FastAPI (main.py) ──► history.py ──► PostgreSQL 16
    │                    conversations/messages 表
    ├──► agent.py ──► 工具循环（本地工具 + MCP 工具）
    │       │
@@ -189,9 +213,11 @@ LLMClient ──► DeepSeek / OpenAI / Ollama（OpenAI 兼容协议）
 ## 数据库表
 
 ```sql
-conversations(id, title, created_at)
+users(id, username, password_hash, active, can_use_mcp)
+login_sessions(token_hash, user_id, expires_at)
+conversations(id, owner_id, title, created_at)
 messages(id, conversation_id FK, role, content, created_at)
-documents(id, title, source, created_at)
+documents(id, owner_id, title, source, created_at)
 chunks(id, document_id FK, chunk_index, content, embedding vector(512))  -- pgvector
 ```
 
@@ -203,7 +229,10 @@ chunks(id, document_id FK, chunk_index, content, embedding vector(512))  -- pgve
 
 | 端点 | 说明 |
 |------|------|
-| `GET /health` | 健康检查（含文档数） |
+| `GET /health` | 公共健康检查 |
+| `POST /auth/login` | 登录并取得 bearer token |
+| `GET /auth/me` | 查看当前账号 |
+| `POST /auth/logout` | 撤销当前 token |
 | `POST /chat` | 完整回复（支持 `use_rag`） |
 | `POST /chat/stream` | SSE 流式（支持 `use_rag`，事件含 sources） |
 | `POST /agent` | Agent 完整回复（含工具调用轨迹） |
@@ -223,6 +252,9 @@ llm-qa-service/
 ├── .env.example             # 配置模板（secret 不入库）
 ├── app/
 │   ├── main.py              # FastAPI 入口 + 路由
+│   ├── auth.py              # 登录、bearer session、MCP 权限
+│   ├── security.py          # 请求账号 ContextVar
+│   ├── manage_users.py      # 部署者创建账号命令
 │   ├── config.py            # 环境变量配置
 │   ├── db.py                # SQLAlchemy 模型 + async engine
 │   ├── history.py           # 会话存储（PostgreSQL）
@@ -239,8 +271,9 @@ llm-qa-service/
 │   └── run_rag_eval.py        # 评测命令入口（检索 / 可选生成 / LLM 裁判）
 └── tests/
     ├── test_api.py          # API / RAG / Agent / MCP 测试
+    ├── test_auth.py         # 登录、过期、禁用和跨用户隔离测试
     ├── test_evaluation.py   # 评测数据、指标、LLM 裁判与阈值测试
-    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（共 51 个 pytest）
+    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（全套共 54 个 pytest）
 ```
 
 ## 云端部署（Render 免费层）

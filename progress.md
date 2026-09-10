@@ -1,6 +1,8 @@
 # 📊 每日进度追踪
 
 > 每天 10 分钟更新。目标：每周完成一个可展示的交付物。
+>
+> 当前状态和跨终端交接入口：[`docs/project-status.md`](docs/project-status.md)
 
 ## ✅ 已完成里程碑
 
@@ -15,18 +17,23 @@
 | **Agent 开发（tool calling / 工具循环）** | ✅ | 08-13 | 3 个内置工具 + 流式追踪 + 安全边界 |
 | **MCP 接入（stdio / Streamable HTTP）** | ✅ | 08-13 | allow-list + Agent 复用 + 24 个测试 |
 | **云端 MCP 配置 + 端到端验证** | ✅ | 08-13 | Render 控制台配置 `MCP_SERVERS_JSON`，Agent 混合调用内置 + MCP 工具 |
-| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑 51 个测试 + mock hybrid RAG 质量门槛（pgvector 容器） |
+| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑 54 个测试 + mock hybrid RAG 质量门槛（pgvector 容器） |
 | **LLMClient 重试 + 连接池上限** | ✅ | 08-13 | `httpx.Limits` + 指数退避（429/5xx/网络错误、Retry-After、jitter）+ 10 个新测试 |
 | **RAG 检索评测集 + 质量基线** | ✅ | 09-01 | 31 条人工标注样本；证据标注与语料一致性测试；CI 回归门槛 |
 | **混合检索（BM25 + 向量 + 句级 rerank）** | ✅ | 09-02 | RRF 融合；mock Hit@1 96.5%，本地 bge Hit@1 100.0% |
 | **LLM-as-a-judge 生成评测框架** | ✅ | 09-02 | 忠实度/正确性/拒答；严格 JSON 字段校验；记录模型、temperature、提示词版本；不进 CI |
 | **首份真实 LLM 生成质量基线** | ✅ | 09-02 | deepseek-chat：检索/关键词/引用/资料不足拒答/裁判均 100%；31/31 裁判 JSON 解析成功，0 条生成复核项 |
+| **P0-1 认证与账号级资源隔离** | ✅（待提交） | 09-10 | scrypt 登录、8 小时 bearer session、owner 过滤、MCP 权限、跨账号测试；本地 54 个 pytest 通过 |
 
 ## 待办
 
-- [ ] 简历更新
+- [x] 简历更新（09-02）
 - [x] 项目总结与面试问答整理（09-02）
 - [ ] 使用独立裁判模型做一次交叉复核（可选，需要 API Key 与调用预算）
+- [ ] 提交并推送 P0-1，重新部署 Render 后验证登录和隔离
+- [ ] 用 Alembic 管理生产数据库 schema 迁移
+- [ ] 前端清空历史增加二次确认
+- [ ] 登录、LLM 接口限流与基础审计/可观测性
 
 ## 面试问题积累
 
@@ -66,7 +73,7 @@
 
 ### 问题 6：怎么知道 Agent 开发做好了？怎么测试？（08-13 更新 09-01）
 **回答思路：**
-- 三层测试：① 自动化（mock LLM 模拟工具决策，验证循环逻辑/安全边界/容错，51 个 pytest + CI 自动跑）② 手动 API（真实 LLM 验证工具决策正确：算术→calculator、时间→get_current_time、手册→search_knowledge_base）③ 云端端到端（部署后 /agent 混合调用内置 + MCP 工具）
+- 三层测试：① 自动化（mock LLM 模拟工具决策，验证循环逻辑/安全边界/容错，54 个 pytest + CI 自动跑）② 手动 API（真实 LLM 验证工具决策正确：算术→calculator、时间→get_current_time、手册→search_knowledge_base）③ 云端端到端（部署后 /agent 混合调用内置 + MCP 工具）
 - 安全行为必测：未配置 MCP 时 use_mcp=true 必须 503 明确报错；危险表达式/参数越界/迭代超限都有明确错误路径
 - 回答质量有独立基线：31 条 RAG 评测样本测 Evidence Hit@K、MRR 与 P95 延迟；混合检索将 mock Hit@1 从 vector 的 89.7% 提升至 96.5%，本地 bge 为 100.0%；真实 LLM 再测答案关键词、引用、拒答与资料忠实度，不能把 mock 回复或单次裁判分数当质量结论
 - 手册见 `docs/agent-testing.md`
