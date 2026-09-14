@@ -362,7 +362,7 @@ class LLMClient:
                 break
         return (
             f"[MOCK MODE] 收到你的问题：{last_user_msg}\n"
-            "配置 OPENAI_API_KEY 后即可获得真实回复。\n"
+            "配置 LLM_API_KEY 后即可获得真实回复。\n"
             f"（当前模型：{self.model}，base_url：{self.base_url}）"
         )
 

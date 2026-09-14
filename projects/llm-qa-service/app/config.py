@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     # 服务配置
     app_port: int = 8000
     app_env: str = "dev"
+    # 开发环境保留 create_all 便于开箱即用；生产环境由 Alembic release step 迁移。
+    auto_create_schema: bool = True
+    session_ttl_seconds: int = Field(default=28800, ge=300, le=2_592_000)
+    audit_retention_days: int = Field(default=90, ge=1, le=3650)
+
+    # 限流默认关闭，生产部署显式开启；限流器是单进程窗口，规模化时应迁移到 Redis/网关。
+    rate_limit_enabled: bool = False
+    rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
+    rate_limit_login_per_window: int = Field(default=10, ge=1, le=10_000)
+    rate_limit_llm_per_window: int = Field(default=30, ge=1, le=10_000)
 
     # 数据库（PostgreSQL + pgvector，本地用 docker compose 起）
     database_url: str = "postgresql+psycopg://llmqa:llmqa_dev_only@localhost:5432/llmqa"

@@ -64,6 +64,22 @@ body {
 .new-chat-btn:hover { background: var(--sidebar-hover); }
 .new-chat-btn svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
 
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 10px 6px;
+}
+.clear-history-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.clear-history-btn:hover { background: var(--sidebar-hover); color: var(--text); }
+
 .history-list {
   flex: 1;
   overflow-y: auto;
@@ -440,6 +456,9 @@ body {
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         New chat
       </button>
+    </div>
+    <div class="history-actions">
+      <button class="clear-history-btn" type="button" onclick="clearHistory()">清空历史</button>
     </div>
     <div class="history-list" id="historyList">
       <div class="history-empty" id="historyEmpty">暂无历史对话</div>
@@ -975,6 +994,16 @@ async function deleteHistory(id, ev) {
     $('welcome').style.display = '';
     $('messages').innerHTML = '';
   }
+  refreshHistory();
+}
+
+async function clearHistory() {
+  if (!window.confirm('确定清空全部历史对话？此操作不可撤销。')) return;
+  const resp = await fetch('/history', { method: 'DELETE' });
+  if (!resp.ok) return;
+  currentConvId = null;
+  $('welcome').style.display = '';
+  $('messages').innerHTML = '';
   refreshHistory();
 }
 

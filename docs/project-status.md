@@ -3,7 +3,7 @@
 > 这是跨终端继续开发时的首个阅读入口。先看本文件，再按“文件入口”和“下一步”继续工作。
 > 跨端开工/收尾规则、长任务规范见 [`vibe-coding-workflow.md`](vibe-coding-workflow.md)。
 >
-> 最近更新：2026-09-14（本地账号隔离验证完成；Render 云端 Shell 受 Free 计划限制）
+> 最近更新：2026-09-14（P1 生产化代码与本地验证完成；尚未部署到 Render）
 
 ## 1. 项目位置
 
@@ -12,7 +12,7 @@
 | 工作区 | `/Users/ryan/developer/career_study/ai_engineer` |
 | 服务项目 | `/Users/ryan/developer/career_study/ai_engineer/projects/llm-qa-service` |
 | 当前分支 | `main` |
-| 最近已提交版本 | `455f181 feat: add pgvector HNSW index, retrieval benchmark, and cross-end workflow docs` |
+| 最近已提交版本 | `8bfefda chore: finalize HNSW benchmark and local P0 verification` |
 | 远端状态 | `main` 与 `origin/main` 一致 |
 
 在新终端快速定位：
@@ -26,15 +26,16 @@ cd projects/llm-qa-service
 
 ## 2. 当前工作区状态
 
-P0-1“登录与账号级资源隔离”已提交为 `78f337d`；HNSW 索引与基准脚本已提交为 `455f181`，两者均已推送。
+P0-1“登录与账号级资源隔离”已提交为 `78f337d`；HNSW 索引与基准脚本已提交为 `455f181`，P0 收尾与本地验证已提交为 `8bfefda`，三者均已推送。
 
-当前 P0 未提交改动是 HNSW 低内存基准支持、聚焦单测、正式报告和状态同步：
+当前工作区包含未提交的 P1 生产化改动：
 
-- 新测试：`tests/test_hnsw.py`，覆盖索引 DDL 参数、`ef_search` 边界与 `vector_candidates` 的 `document_ids` 过滤。
-- `evals/bench_retrieval.py` 新增 `--embedding-batch-size`（1–256）参数；`tests/test_bench_retrieval.py` 覆盖边界。
-- 正式报告：`evals/retrieval-bench.md`；文档同步：本文件、`progress.md`、服务 README、评测说明与测试手册。
+- Alembic 初始迁移与生产启动 schema 校验，生产模式不再依赖 `create_all`。
+- 清空当前账号全部历史的 API、前端二次确认和 owner-scoped 测试。
+- 登录/高成本请求限流、审计日志、请求 ID、Prometheus 指标和过期 session/审计清理命令。
+- Docker 启动先迁移再启动；生产配置与备份/恢复运维手册。
 
-已完成：HNSW 代码、mock 基准、真实 local bge 基准、4 条新增 HNSW/基准测试、全量 58 个 pytest、CI 同款 mock hybrid 评测。
+P1 本地验证已完成：64 个 pytest、Python 编译检查、Alembic upgrade/current、生产模式健康检查、Docker 镜像构建和临时库备份恢复演练均通过；镜像内 `alembic heads` 为 `0001_initial (head)`。
 
 2026-09-13 经用户允许停止 `kimi-k8s-control-plane` 后，固定 256 条 batch 仍在 256/2,000 切片时进入内存颠簸，因此停止并清理了 20 个临时文档和 256 条临时切片。新增 32 条 batch 后，2,005 切片正式基准完成且临时数据自动清理。
 
@@ -72,7 +73,7 @@ git diff --stat
 
 - `/auth/login`、`/auth/me`、`/auth/logout`
 - scrypt 密码哈希；数据库只保存 bearer token 哈希
-- token 默认 8 小时过期，支持主动撤销
+- token 默认 8 小时过期，支持主动撤销；可配置 TTL，维护命令清理过期 session
 - 会话、文档、切片、普通聊天、SSE、RAG 和 Agent 按 `owner_id` 隔离
 - MCP 需要账号具有 `can_use_mcp`
 - `python -m app.manage_users USERNAME [--allow-mcp]` 创建账号
@@ -83,14 +84,14 @@ git diff --stat
 - CI 离线门槛：mock + hybrid，Hit@1 ≥ 95%，Hit@4 = 100%
 - 真实 LLM 可选检查关键词、引用、拒答和 LLM-as-a-judge
 - Docker Compose 本地 pgvector；Render 云端部署和单账号 Agent/MCP 验证已完成；跨账号验证已在本地完成
-- GitHub Actions 已运行完整测试和 RAG 质量门槛
+- GitHub Actions 已运行完整测试和 RAG 质量门槛；P1 新增本地生产化检查，待提交后纳入 CI
 
 ## 4. 最近验证结果
 
 | 检查 | 最近结果 |
 |---|---|
-| 自动化测试 | `58 passed in 5.18s`（2026-09-13，含 HNSW 与低内存 batch 参数测试） |
-| 工作区格式检查 | `git diff --check` 通过（2026-09-13） |
+| 自动化测试 | `64 passed in 6.64s`（2026-09-14，含 P1 生产化能力测试） |
+| 工作区格式检查 | `git diff --check` 通过（2026-09-14） |
 | mock + hybrid RAG | Hit@1 96.5%，Hit@3 100%，Hit@4 100%，MRR 0.9828 |
 | local bge + hybrid RAG | Hit@1/3/4 100%，MRR 1.0000 |
 | DeepSeek live + judge | 31/31 JSON 可解析；本次候选与裁判使用同一模型 |
@@ -127,17 +128,18 @@ tail -f /tmp/bench.log
 
 ## 5. 下一步优先级
 
-### P0：收尾 HNSW 与上线验证（当前任务）
+### P0：收尾 HNSW 与上线验证（已完成）
 
 1. 本地 A/B 资源隔离和 MCP 权限验证已完成；Render Free 计划不提供 Shell，云端账号验证暂缓，不升级服务。
-2. 提交本次 HNSW 单测、低内存 batch 参数、报告和状态文档。
+2. HNSW 单测、低内存 batch 参数、报告和状态文档已提交。
 
 ### P1：P0-1 上线 + 生产化缺口
 
-1. 用 Alembic 管理 `users`、`login_sessions`、`owner_id`、HNSW 索引等 schema 迁移，替代生产环境依赖 `create_all`。
-2. 增加前端“清空历史”二次确认。
-3. 增加登录和高成本 LLM 接口的限流、审计日志和基础可观测性。
-4. 增加备份/恢复演练与 token/session 清理策略。
+1. ✅ Alembic 初始迁移、生产启动校验和 Docker 迁移入口已完成并在本地验证。
+2. ✅ 前端“清空历史”二次确认与账号范围删除已完成并测试。
+3. ✅ 登录和高成本 LLM 接口限流、审计日志、请求 ID、Prometheus 指标已完成并测试。
+4. ✅ 备份/恢复 runbook、过期 token/session 与审计清理命令已完成；本地临时库恢复演练通过，真实生产恢复待运维权限。
+5. 待提交、推送并在 Render 做一次发布后健康检查；本轮未执行部署。
 
 ### P2：企业能力与规模化
 
@@ -157,6 +159,7 @@ tail -f /tmp/bench.log
 | Agent/MCP 手动测试 | [`agent-testing.md`](agent-testing.md) |
 | RAG/LLM 评测命令和指标 | [`projects/llm-qa-service/evals/README.md`](../projects/llm-qa-service/evals/README.md) |
 | HNSW 向量索引基准脚本 | [`projects/llm-qa-service/evals/bench_retrieval.py`](../projects/llm-qa-service/evals/bench_retrieval.py) |
+| 生产发布、备份恢复和清理 | [`production-runbook.md`](production-runbook.md) |
 | 项目总结、简历和面试素材 | [`llm-qa-service-project-summary.md`](llm-qa-service-project-summary.md)、[`llm-qa-service-interview-qa.md`](llm-qa-service-interview-qa.md)、[`../resume-ai-engineer.md`](../resume-ai-engineer.md) |
 | 最近的评测报告 | [`baseline.md`](../projects/llm-qa-service/evals/baseline.md)、[`retrieval-bench.md`](../projects/llm-qa-service/evals/retrieval-bench.md)、[`latest-live-judge-report.refusal-v3.md`](../projects/llm-qa-service/evals/latest-live-judge-report.refusal-v3.md) |
 
@@ -168,13 +171,13 @@ tail -f /tmp/bench.log
   → git status / git diff
   → docker compose up -d
   → pytest -q
-  → 按 §5 P0 继续：Render 跨账号验证 → 提交
+  → 按 §5 P1 继续：检查 diff → 提交 → 按发布手册部署
 ```
 
 ## 8. 当前明确未完成
 
-- Render：登录拦截已验证；Free 计划无 Shell，跨账号隔离和 MCP 权限尚未用云端测试账号验证；本地等价验证已完成。
+- Render：登录拦截已验证；Free 计划无 Shell，跨账号隔离和 MCP 权限尚未用云端测试账号验证；本地等价验证已完成。P1 改动尚未部署。
 - 没有企业 SSO、组织/部门权限和管理员后台。
-- 生产 schema 迁移尚未切换到 Alembic。
-- 前端清空历史没有二次确认。
+- 真实生产数据库备份/恢复演练尚未执行；当前只有可复现 runbook 和本地迁移验证。
+- P1 改动尚未提交、推送和发布。
 - 尚未完成独立裁判模型交叉复核。

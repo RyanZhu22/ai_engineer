@@ -1,4 +1,4 @@
-"""Password login and revocable opaque bearer sessions (8 hours).
+"""Password login and revocable opaque bearer sessions (configurable TTL).
 
 Tokens are stored hashed in PostgreSQL; accounts are provisioned by operators.
 The ASGI middleware retains identity throughout the SSE response lifecycle.
@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, delete
 from starlette.responses import JSONResponse
 
+from .audit import record_audit_event, request_context
+from .config import get_settings
 from .db import User, LoginSession, get_session_factory
 from .security import current_user_id
 
@@ -44,18 +46,51 @@ class Credentials(BaseModel):
 
 
 @router.post("/login")
-async def login(body: Credentials):
+async def login(body: Credentials, request: Request):
+    user_id: str | None = None
+    token: str | None = None
+    session_ttl = get_settings().session_ttl_seconds
     async with get_session_factory()() as session:
         user = (await session.execute(select(User).where(User.username == body.username))).scalar_one_or_none()
         # Same password work for unknown accounts to reduce username timing leaks.
         stored = user.password_hash if user else hash_password("invalid", "00" * 16)
         valid = await asyncio.to_thread(verify_password, body.password, stored)
-        if not user or not valid or not user.active:
-            raise HTTPException(401, "用户名或密码错误")
-        token = secrets.token_urlsafe(32)
-        session.add(LoginSession(token_hash=token_hash(token), user_id=user.id, expires_at=time.time() + 28800))
-        await session.commit()
-        return JSONResponse({"access_token": token, "token_type": "bearer", "expires_in": 28800}, headers={"Cache-Control": "no-store"})
+        if user and valid and user.active:
+            token = secrets.token_urlsafe(32)
+            user_id = user.id
+            session.add(
+                LoginSession(
+                    token_hash=token_hash(token),
+                    user_id=user.id,
+                    expires_at=time.time() + session_ttl,
+                )
+            )
+            await session.commit()
+
+    context = request_context(request)
+    if user_id is None or token is None:
+        await record_audit_event(
+            "auth.login.failure",
+            success=False,
+            request_id=context["request_id"],
+            ip_address=context["ip_address"],
+        )
+        raise HTTPException(401, "用户名或密码错误")
+
+    await record_audit_event(
+        "auth.login.success",
+        user_id=user_id,
+        request_id=context["request_id"],
+        ip_address=context["ip_address"],
+    )
+    return JSONResponse(
+        {
+            "access_token": token,
+            "token_type": "bearer",
+            "expires_in": session_ttl,
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/me")
@@ -68,6 +103,13 @@ async def logout(request: Request):
     async with get_session_factory()() as session:
         await session.execute(delete(LoginSession).where(LoginSession.token_hash == request.state.token_hash))
         await session.commit()
+    context = request_context(request)
+    await record_audit_event(
+        "auth.logout",
+        user_id=context["user_id"],
+        request_id=context["request_id"],
+        ip_address=context["ip_address"],
+    )
     return {"logged_out": True}
 
 
@@ -84,7 +126,7 @@ class AuthenticationMiddleware:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         path = scope["path"]
-        if path in {"/", "/health", "/auth/login", "/docs", "/openapi.json", "/redoc"} or path.startswith("/static/"):
+        if path in {"/", "/health", "/metrics", "/auth/login", "/docs", "/openapi.json", "/redoc"} or path.startswith("/static/"):
             return await self.app(scope, receive, send)
         request = Request(scope)
         scheme, _, token = request.headers.get("authorization", "").partition(" ")

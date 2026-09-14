@@ -36,6 +36,25 @@ class LoginSession(Base):
     expires_at = Column(Float, nullable=False)
 
 
+class AuditLog(Base):
+    """结构化安全审计事件；不保存密码、token 或请求正文。"""
+
+    __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_created_at", "created_at"),
+        Index("ix_audit_logs_user_id_created_at", "user_id", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event = Column(String(64), nullable=False)
+    user_id = Column(String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    success = Column(Boolean, nullable=False, default=True)
+    request_id = Column(String(64), nullable=True)
+    ip_address = Column(String(64), nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(Float, nullable=False)
+
+
 # ---------- 对话/消息 ----------
 class Conversation(Base):
     __tablename__ = "conversations"
@@ -164,8 +183,13 @@ def _apply_vector_session_defaults(dbapi_connection, connection_record) -> None:
         # 上面第一条语句会隐式开启事务，提交掉以免把事务状态留给 SQLAlchemy
         dbapi_connection.commit()
     except Exception:
-        # 扩展尚未创建（全新数据库）或权限不足时不阻断连接
-        pass
+        # 扩展尚未创建（全新数据库）或权限不足时不阻断连接；
+        # psycopg 会把失败语句置于 aborted transaction，必须回滚，否则
+        # init_db() 后续的 CREATE EXTENSION/create_all 也会全部失败。
+        try:
+            dbapi_connection.rollback()
+        except Exception:
+            pass
 
 
 def _get_engine():
@@ -201,9 +225,17 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db() -> None:
-    """建表（应用启动时调用）。正式项目用 Alembic 迁移。"""
+    """初始化或校验数据库 schema。
+
+    开发/测试默认允许 create_all；生产环境必须先运行 ``alembic upgrade head``，
+    并设置 ``AUTO_CREATE_SCHEMA=false``，避免应用进程隐式修改 schema。
+    """
     engine = _get_engine()
     async with engine.begin() as conn:
+        settings = get_settings()
+        if not settings.auto_create_schema:
+            await _verify_schema(conn)
+            return
         # pgvector 扩展由 docker-compose 初始化时创建，这里再确保一次（幂等）
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
@@ -214,6 +246,45 @@ async def init_db() -> None:
             await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{table}_owner_id ON {table}(owner_id)"))
         # create_all 不会给已存在的表补索引，所以向量索引单独幂等创建一次。
         await conn.execute(text(_vector_index_ddl()))
+
+
+async def _verify_schema(conn) -> None:
+    """生产启动时只读检查 Alembic 和关键表，失败时给出可操作提示。"""
+    required_tables = (
+        "users",
+        "login_sessions",
+        "conversations",
+        "messages",
+        "documents",
+        "chunks",
+        "audit_logs",
+    )
+    for table in required_tables:
+        result = await conn.execute(
+            text(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema = current_schema() AND table_name = :table"
+            ),
+            {"table": table},
+        )
+        if result.first() is None:
+            raise RuntimeError(
+                f"数据库缺少表 {table}；生产环境请先执行 `alembic upgrade head`"
+            )
+    version = await conn.execute(
+        text(
+            "SELECT version_num FROM alembic_version "
+            "WHERE version_num IS NOT NULL LIMIT 1"
+        )
+    )
+    if version.first() is None:
+        raise RuntimeError("数据库没有 Alembic 版本记录；生产环境请先执行 `alembic upgrade head`")
+    index = await conn.execute(
+        text("SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND indexname = :name"),
+        {"name": VECTOR_INDEX_NAME},
+    )
+    if index.first() is None:
+        raise RuntimeError(f"数据库缺少向量索引 {VECTOR_INDEX_NAME}；请重新执行 `alembic upgrade head`")
 
 
 def _vector_index_ddl(name: str = VECTOR_INDEX_NAME) -> str:

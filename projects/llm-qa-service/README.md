@@ -25,7 +25,7 @@
 | **Agent 工具调用**（检索 / 计算 / 查时间） | ✅ | Agent / tool calling |
 | **MCP 工具接入**（stdio / Streamable HTTP） | ✅ | MCP / 外部系统集成 |
 | ChatGPT 风格前端（暂停/重发/复制/知识库/Agent/MCP 开关） | ✅ | 全栈加分 |
-| 测试 + RAG 评测 | ✅ | 58 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
+| 测试 + RAG 评测 | ✅ | 64 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
 
 ## 快速开始
 
@@ -49,6 +49,24 @@ uvicorn app.main:app --port 8000 --reload
 .venv/bin/python -m app.manage_users alice
 
 # 6. 打开 http://localhost:8000 使用；API 文档 /docs
+```
+
+### 生产 schema 迁移
+
+生产环境不让应用进程隐式建表。部署前执行一次：
+
+```bash
+alembic upgrade head
+```
+
+并设置 `AUTO_CREATE_SCHEMA=false`。Docker 镜像的启动命令会先执行同一条迁移，再启动 Uvicorn；
+本地开发默认 `AUTO_CREATE_SCHEMA=true`，方便 `docker compose up -d` 后直接运行。
+
+发布、备份/恢复和定期清理步骤见 [`docs/production-runbook.md`](../../docs/production-runbook.md)。过期
+session 和旧审计记录可由受控 cron/Job 执行：
+
+```bash
+.venv/bin/python -m app.maintenance cleanup-sessions
 ```
 
 ## 登录与权限隔离
@@ -239,9 +257,11 @@ chunks(id, document_id FK, chunk_index, content, embedding vector(512))  -- pgve
 | `POST /agent/stream` | Agent SSE（逐条推送工具调用与最终回答） |
 | `GET /mcp/tools` | 已配置并 allow-list 的 MCP 工具清单 |
 | `GET/POST /history` | 会话历史 |
+| `DELETE /history` | 清空当前账号的全部会话（前端带二次确认） |
 | `POST /documents/upload` | 上传文档并索引 |
 | `GET/DELETE /documents` | 文档列表/删除 |
 | `POST /documents/search` | RAG 检索调试 |
+| `GET /metrics` | 进程级 Prometheus 请求指标（不含正文、token） |
 
 ## 目录结构
 

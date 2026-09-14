@@ -17,7 +17,7 @@
 | **Agent 开发（tool calling / 工具循环）** | ✅ | 08-13 | 3 个内置工具 + 流式追踪 + 安全边界 |
 | **MCP 接入（stdio / Streamable HTTP）** | ✅ | 08-13 | allow-list + Agent 复用 + 24 个测试 |
 | **云端 MCP 配置 + 端到端验证** | ✅ | 08-13 | Render 控制台配置 `MCP_SERVERS_JSON`，Agent 混合调用内置 + MCP 工具 |
-| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑 58 个测试 + mock hybrid RAG 质量门槛（pgvector 容器） |
+| **GitHub Actions CI** | ✅ | 08-13 | push 自动跑完整 pytest + Alembic SQL 校验 + mock hybrid RAG 质量门槛（pgvector 容器） |
 | **LLMClient 重试 + 连接池上限** | ✅ | 08-13 | `httpx.Limits` + 指数退避（429/5xx/网络错误、Retry-After、jitter）+ 10 个新测试 |
 | **RAG 检索评测集 + 质量基线** | ✅ | 09-01 | 31 条人工标注样本；证据标注与语料一致性测试；CI 回归门槛 |
 | **混合检索（BM25 + 向量 + 句级 rerank）** | ✅ | 09-02 | RRF 融合；mock Hit@1 96.5%，本地 bge Hit@1 100.0% |
@@ -30,7 +30,8 @@
 
 | 任务 | 状态 | 说明 |
 |------|------|------|
-| **pgvector HNSW 索引 + 检索基准** | ✅（待提交） | 09-13 | local bge 2,005 切片：ef=100 Recall@10 1.000、P95 9.07ms；低内存 batch=32；报告见 `evals/retrieval-bench.md` |
+| **pgvector HNSW 索引 + 检索基准** | ✅（已提交） | 09-13 | local bge 2,005 切片：ef=100 Recall@10 1.000、P95 9.07ms；低内存 batch=32；报告见 `evals/retrieval-bench.md` |
+| **P1 生产化** | 🚧（本地完成，待发布） | 09-14 | Alembic、清空历史确认、限流、审计/指标、session 清理和生产 runbook；64 个 pytest 与本地备份恢复演练通过 |
 
 ## 待办
 
@@ -41,9 +42,11 @@
 - [x] 本地测试账号验证跨账号隔离和 MCP 权限（09-14）
 - [ ] 在 Render 创建测试账号并复验跨账号隔离和 MCP 权限（Free 计划无 Shell，暂缓）
 - [ ] 使用独立裁判模型做一次交叉复核（可选，需要 API Key 与调用预算）
-- [ ] 用 Alembic 管理生产数据库 schema 迁移
-- [ ] 前端清空历史增加二次确认
-- [ ] 登录、LLM 接口限流与基础审计/可观测性
+- [x] 用 Alembic 管理生产数据库 schema 迁移（本地完成，待发布）
+- [x] 前端清空历史增加二次确认（本地完成）
+- [x] 登录、LLM 接口限流与基础审计/可观测性（本地完成）
+- [x] 过期 session/审计清理命令与备份恢复 runbook（真实生产演练待做）
+- [ ] 提交、推送并在 Render 做 P1 发布后健康检查（需用户明确授权）
 
 ## 面试问题积累
 

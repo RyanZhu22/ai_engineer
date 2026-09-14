@@ -14,15 +14,19 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, Request
 from .auth import AuthenticationMiddleware, router as auth_router, require_mcp
 from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import agent, history, rag
+from .audit import record_audit_event, request_context
 from .config import get_settings
 from .db import Document, close_db, get_db, init_db
 from .embedding_client import get_embedding_client
 from .llm_client import LLMClient, get_llm_client
 from .mcp_client import MCPConfigurationError, MCPToolProvider
+from .observability import RequestObservabilityMiddleware, metrics_response
+from .rate_limit import RateLimitMiddleware
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -30,8 +34,10 @@ from sqlalchemy.orm import selectinload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.db_ready = False
     try:
         await init_db()
+        app.state.db_ready = True
     except Exception as e:
         # 数据库不可用时不阻断启动，health 会暴露状态
         print(f"[WARN] 数据库初始化失败（先运行 docker compose up -d）: {e}")
@@ -48,6 +54,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(AuthenticationMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RequestObservabilityMiddleware)
 app.include_router(auth_router)
 
 
@@ -109,12 +117,23 @@ class AgentResponse(BaseModel):
 async def health():
     """liveness/readiness 探针 - 面试必问的 production 概念"""
     settings = get_settings()
-    return {
-        "status": "UP",
+    db_ready = getattr(app.state, "db_ready", True)
+    payload = {
+        "status": "UP" if db_ready else "DEGRADED",
         "service": "llm-qa-service",
         "env": settings.app_env,
         "mode": "mock" if settings.mock_mode else "live",
+        "database": "ready" if db_ready else "migration_required",
     }
+    if not db_ready and settings.app_env == "production":
+        return JSONResponse(payload, status_code=503)
+    return payload
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    """Prometheus 文本格式的进程级请求指标，不包含用户内容或凭据。"""
+    return metrics_response()
 
 
 # ---------- 构建消息上下文 ----------
@@ -327,11 +346,33 @@ async def get_history(conv_id: str):
 
 
 @app.delete("/history/{conv_id}")
-async def delete_history(conv_id: str):
+async def delete_history(conv_id: str, request: Request):
     ok = await history.delete_conversation(conv_id)
     if not ok:
         raise HTTPException(404, "会话不存在")
+    context = request_context(request)
+    await record_audit_event(
+        "history.delete",
+        user_id=context["user_id"],
+        request_id=context["request_id"],
+        ip_address=context["ip_address"],
+        details={"conversation_id": conv_id},
+    )
     return {"deleted": conv_id}
+
+
+@app.delete("/history")
+async def clear_history(request: Request):
+    deleted_count = await history.delete_all_conversations()
+    context = request_context(request)
+    await record_audit_event(
+        "history.clear",
+        user_id=context["user_id"],
+        request_id=context["request_id"],
+        ip_address=context["ip_address"],
+        details={"deleted_count": deleted_count},
+    )
+    return {"deleted_count": deleted_count}
 
 
 class TruncateRequest(BaseModel):
@@ -394,12 +435,20 @@ async def list_documents(session: AsyncSession = Depends(get_db)):
 
 
 @app.delete("/documents/{doc_id}")
-async def delete_document(doc_id: int, session: AsyncSession = Depends(get_db)):
+async def delete_document(doc_id: int, request: Request, session: AsyncSession = Depends(get_db)):
     doc = (await session.execute(select(Document).where(Document.id == doc_id))).scalar_one_or_none()
     if not doc:
         raise HTTPException(404, "文档不存在")
     await session.delete(doc)  # cascade 删除 chunks
     await session.commit()
+    context = request_context(request)
+    await record_audit_event(
+        "document.delete",
+        user_id=context["user_id"],
+        request_id=context["request_id"],
+        ip_address=context["ip_address"],
+        details={"document_id": doc_id},
+    )
     return {"deleted": doc_id}
 
 

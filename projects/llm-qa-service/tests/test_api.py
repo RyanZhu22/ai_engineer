@@ -14,6 +14,8 @@ from pathlib import Path
 os.environ["LLM_API_KEY"] = ""
 os.environ["EMBEDDING_PROVIDER"] = "mock"
 os.environ["MCP_SERVERS_JSON"] = ""
+os.environ["AUTO_CREATE_SCHEMA"] = "true"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient

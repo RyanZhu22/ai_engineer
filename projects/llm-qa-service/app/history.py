@@ -9,10 +9,11 @@
 import time
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
 from .db import Conversation, Message, get_session_factory
+from .security import current_user_id
 
 
 def _conv_to_dict(conv: Conversation) -> dict:
@@ -99,6 +100,30 @@ async def delete_conversation(conv_id: str) -> bool:
         await session.delete(conv)  # cascade 删除 messages
         await session.commit()
         return True
+
+
+async def delete_all_conversations() -> int:
+    """删除当前账号的全部会话并返回数量，绝不触碰其他账号数据。"""
+    user_id = current_user_id.get()
+    if user_id is None:
+        raise RuntimeError("清空历史必须在已认证请求中执行")
+    async with get_session_factory()() as session:
+        ids = (
+            await session.execute(
+                select(Conversation.id).where(Conversation.owner_id == user_id)
+            )
+        ).scalars().all()
+        if not ids:
+            return 0
+        await session.execute(delete(Message).where(Message.conversation_id.in_(ids)))
+        await session.execute(
+            delete(Conversation).where(
+                Conversation.owner_id == user_id,
+                Conversation.id.in_(ids),
+            )
+        )
+        await session.commit()
+    return len(ids)
 
 
 async def truncate_conversation(conv_id: str, keep_messages: int) -> bool:

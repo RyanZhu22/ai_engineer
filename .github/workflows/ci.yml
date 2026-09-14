@@ -47,6 +47,11 @@ jobs:
         working-directory: projects/llm-qa-service
         run: python -m pytest tests/ -v
 
+      - name: Validate Alembic migrations
+        working-directory: projects/llm-qa-service
+        # 仅生成 SQL，不连接或修改 CI 数据库；确保生产迁移入口可解析。
+        run: alembic upgrade head --sql > /tmp/llmqa-alembic.sql
+
       - name: Run deterministic RAG evaluation baseline
         working-directory: projects/llm-qa-service
         # hybrid 基线：mock embedding 下 Hit@1=96.5%、Hit@4=100%。

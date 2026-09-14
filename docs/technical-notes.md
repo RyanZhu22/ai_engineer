@@ -160,7 +160,7 @@ CREATE INDEX idx_messages_conv ON messages(conversation_id);
 
 - 当前：`history.py` 已用 PostgreSQL + SQLAlchemy async（档次 3），conversations/messages 表关系型存储；P0-1 已加入账号登录和 owner 过滤。
 - RAG：documents/chunks 表 + pgvector（Vector 列），对话与向量同库；文档、切片和检索结果按账号隔离。
-- 下一步：Alembic 迁移、多租户组织/部门权限和企业 SSO；检索已升级为 hybrid + 句级 rerank。
+- 下一步：真实生产备份/恢复演练、多租户组织/部门权限和企业 SSO；检索已升级为 hybrid + 句级 rerank。
 
 ### 面试素材
 
@@ -364,8 +364,10 @@ select(Conversation).options(selectinload(Conversation.messages))
 - [x] LLM-as-a-judge 评测框架（忠实度/正确性/拒答、严格 JSON 字段校验、模型与提示词元数据）
 - [x] 生成失败样本诊断（宽容的资料不足拒答规则 + 报告列出具体回答与裁判理由）
 - [x] 账号登录与会话/文档按 owner_id 隔离（bearer session、跨用户 API/RAG/Agent 测试）
-- [ ] 前端加"清空历史"确认提示，避免误删
-- [ ] 数据库迁移工具（Alembic）替代 create_all
+- [x] 前端加"清空历史"确认提示，避免误删
+- [x] 数据库迁移工具（Alembic）替代生产环境 create_all
+- [x] 登录/高成本请求限流、审计日志、请求 ID 与 Prometheus 指标
+- [x] 过期 session/审计清理命令与备份恢复 runbook（真实生产演练待做）
 - [x] 检索重排（句级 BM25 rerank）与混合检索（BM25 + 向量 RRF）
 
 ---

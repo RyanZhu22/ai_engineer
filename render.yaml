@@ -31,6 +31,10 @@ services:
         value: "512"
       - key: APP_ENV
         value: production
+      - key: AUTO_CREATE_SCHEMA
+        value: "false"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
 
 databases:
   - name: llmqa-db
