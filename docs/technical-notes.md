@@ -448,7 +448,7 @@ select(Conversation).options(selectinload(Conversation.messages))
 - 与计算器/查时间并列，统一走 tool calling 协议，agent 循环零改动
 
 **Q12：怎么知道 Agent 开发做好了？怎么测试？（三层测试法）**
-- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 54 个 pytest，GitHub Actions push 自动跑。
+- **第 1 层 · 自动化测试（验证循环逻辑）**：mock LLM 确定性模拟工具选择（问算式→calculator、时间词→get_current_time、有 mcp_* → 选它），验证工具被正确调用、工具结果回填、安全边界（AST 白名单拒绝 `__import__`/超大指数）、容错（未知工具/坏参数回填给模型修正不崩溃）、迭代上限防死循环。本项目 58 个 pytest，GitHub Actions push 自动跑。
 - **第 2 层 · 手动 API 测试（验证真实模型决策）**：mock 只证明循环逻辑对，不证明真实模型会调对工具。本地起服务 + 真实 key，逐场景 curl 验证：算术→calculator、时间→get_current_time、手册问题→search_knowledge_base、多步问题→连续调用多个工具。
 - **第 3 层 · 云端端到端（验证部署）**：`/health` UP → `/mcp/tools` 列出 allow-list 工具 → `/agent` 真实混合调用内置 + MCP 工具。
 - **关键认知（面试亮点）**：这套测试验证「机制正确」（工具调对、循环不崩、安全到位）；回答质量则由独立的 31 条评测集衡量检索证据命中、排名与延迟。真实 LLM 再测答案关键词、引用、拒答与可选的资料忠实度裁判，不能把 mock 回复或单次裁判分数当质量结论。

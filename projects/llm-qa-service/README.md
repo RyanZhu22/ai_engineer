@@ -25,7 +25,7 @@
 | **Agent 工具调用**（检索 / 计算 / 查时间） | ✅ | Agent / tool calling |
 | **MCP 工具接入**（stdio / Streamable HTTP） | ✅ | MCP / 外部系统集成 |
 | ChatGPT 风格前端（暂停/重发/复制/知识库/Agent/MCP 开关） | ✅ | 全栈加分 |
-| 测试 + RAG 评测 | ✅ | 54 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
+| 测试 + RAG 评测 | ✅ | 58 个 pytest + CI hybrid 质量门槛 + 可选 LLM 裁判 |
 
 ## 快速开始
 
@@ -272,8 +272,10 @@ llm-qa-service/
 └── tests/
     ├── test_api.py          # API / RAG / Agent / MCP 测试
     ├── test_auth.py         # 登录、过期、禁用和跨用户隔离测试
+    ├── test_bench_retrieval.py # 基准 embedding batch 参数测试
+    ├── test_hnsw.py         # HNSW DDL、ef_search 与文档过滤测试
     ├── test_evaluation.py   # 评测数据、指标、LLM 裁判与阈值测试
-    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（全套共 54 个 pytest）
+    └── test_hybrid_retrieval.py # BM25 / RRF / 句级 rerank 单元测试（全套共 58 个 pytest）
 ```
 
 ## 云端部署（Render 免费层）

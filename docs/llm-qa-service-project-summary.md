@@ -56,7 +56,7 @@
 | mock + hybrid | Hit@1 96.5%，Hit@4 100%，MRR 0.9828 |
 | local bge + hybrid | Hit@1/3/4 100%，MRR 1.0000；检索 P95 24.70 ms（该次运行） |
 | DeepSeek live baseline | 31/31 裁判 JSON 可解析；关键词、引用、资料不足拒答和裁判指标均 100%（候选与裁判使用同一模型，不能当作独立准确率） |
-| 自动化测试 | 54 个 pytest 用例，覆盖认证隔离、API、RAG、hybrid 检索、Agent、MCP、LLMClient 重试和评测逻辑 |
+| 自动化测试 | 58 个 pytest 用例，覆盖认证隔离、HNSW、基准参数、API、RAG、hybrid 检索、Agent、MCP、LLMClient 重试和评测逻辑 |
 
 - 用 Docker Compose 提供 PostgreSQL 16 + pgvector；用 `render.yaml` Blueprint 部署到 Render，并完成云端健康检查、知识库问答和 Agent/MCP 端到端验证。
 
@@ -74,7 +74,7 @@
 - 负责企业知识库问答全链路：支持 txt/md/pdf 上传、中文文档切分、本地 `bge-small-zh-v1.5` embedding、PostgreSQL/pgvector 持久化，以及带 `[资料]` 引用的 RAG 回答。
 - 设计并实现 hybrid 检索：向量候选 + 中文 BM25 + 候选块内句级 rerank + RRF 融合；31 条版本化评测集上，mock Hit@1/Hit@4 为 96.5%/100%，local bge 为 100%/100%，MRR 1.0000。
 - 实现 ReAct-style Agent tool calling 与 MCP 适配器，统一接入知识库检索、AST 安全计算器、当前时间及 allow-list 的 stdio/Streamable HTTP 工具；限制循环次数、调用次数、参数、超时和输出长度。
-- 通过异步 SQLAlchemy、SSE 流式响应、httpx 连接池与 429/5xx/网络错误指数退避提升服务可靠性；54 个 pytest 接入 GitHub Actions，配置 mock hybrid 检索质量门槛，并完成 Render 云端端到端验证。
+- 通过异步 SQLAlchemy、SSE 流式响应、httpx 连接池与 429/5xx/网络错误指数退避提升服务可靠性；58 个 pytest 接入 GitHub Actions，配置 mock hybrid 检索质量门槛，并完成 Render 云端端到端验证。
 
 ## 当前仍未完成/不应在简历中过度声称的事项
 
@@ -86,4 +86,4 @@
 
 ## 30 秒项目介绍
 
-> 我做了一个企业知识库问答服务，后端是 FastAPI，数据和向量都放在 PostgreSQL/pgvector。RAG 先用本地中文 embedding 和 BM25 取候选，再做句级 rerank 和 RRF 融合，回答必须带引用，资料不足要拒答。为了验证优化不是主观感觉，我做了 31 条中文评测集和 CI 门槛，mock hybrid 的 Hit@1 是 96.5%，本地 bge 达到 100%。在此基础上又加了 Agent tool calling、allow-list 的 MCP 接入和账号级资源隔离，并用 54 个 pytest、Docker 和 Render 云端验证完整链路。
+> 我做了一个企业知识库问答服务，后端是 FastAPI，数据和向量都放在 PostgreSQL/pgvector。RAG 先用本地中文 embedding 和 BM25 取候选，再做句级 rerank 和 RRF 融合，回答必须带引用，资料不足要拒答。为了验证优化不是主观感觉，我做了 31 条中文评测集和 CI 门槛，mock hybrid 的 Hit@1 是 96.5%，本地 bge 达到 100%。在此基础上又加了 Agent tool calling、allow-list 的 MCP 接入和账号级资源隔离，并用 58 个 pytest、Docker 和 Render 云端验证完整链路。

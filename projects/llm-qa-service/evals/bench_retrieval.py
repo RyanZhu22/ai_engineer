@@ -64,6 +64,16 @@ DEFAULT_DATASET = PROJECT_DIR / "evals" / "rag_eval_dataset.jsonl"
 MAX_BENCH_DOCUMENTS = 20
 
 
+def embedding_batch_size(value: str) -> int:
+    try:
+        size = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("embedding batch size 必须是整数") from exc
+    if not 1 <= size <= 256:
+        raise argparse.ArgumentTypeError("embedding batch size 必须在 1 到 256 之间")
+    return size
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="pgvector 精确扫描 vs HNSW 基准")
     parser.add_argument(
@@ -89,6 +99,12 @@ def parse_args() -> argparse.Namespace:
         choices=("mock", "local", "api", "auto"),
         default="local",
         help="mock 秒级冒烟；local 用真实 bge 向量几何（默认）",
+    )
+    parser.add_argument(
+        "--embedding-batch-size",
+        type=embedding_batch_size,
+        default=256,
+        help="每次生成 embedding 的切片数；内存受限机器可改为 32 或 64（默认：256）",
     )
     parser.add_argument(
         "--filter-ratio",
@@ -276,8 +292,11 @@ async def measure_size(
     *, run_ef_sweep: bool,
 ) -> dict:
     document_count = max(1, min(MAX_BENCH_DOCUMENTS, size // max(1, args.top_k * 2)))
-    print(f"\n=== 规模 {size} 切片（{document_count} 文档，provider={args.embedding_provider}）===")
-    await seed_corpus(args.corpus, size, document_count)
+    print(
+        f"\n=== 规模 {size} 切片（{document_count} 文档，provider={args.embedding_provider}，"
+        f"embedding batch={args.embedding_batch_size}）==="
+    )
+    await seed_corpus(args.corpus, size, document_count, batch_size=args.embedding_batch_size)
 
     async with get_session_factory()() as session:
         total_chunks = await session.scalar(select(func.count()).select_from(Chunk))
@@ -418,6 +437,7 @@ def render_report(args, ef_sweep: list[int], results: list[dict]) -> str:
         f"| 切片规模 | {', '.join(str(r['size']) for r in results)} |",
         f"| 查询数 | {args.queries}（来自 `evals/rag_eval_dataset.jsonl`） |",
         f"| embedding | `{args.embedding_provider}`（维度 {settings.embedding_dim}） |",
+        f"| embedding batch size | {args.embedding_batch_size} |",
         f"| 索引参数 | m={settings.rag_hnsw_m}, ef_construction={settings.rag_hnsw_ef_construction} |",
         "| pgvector | 0.8+（`hnsw.iterative_scan` 需要 0.8.0） |",
         "",
@@ -481,6 +501,7 @@ def render_report(args, ef_sweep: list[int], results: list[dict]) -> str:
         "```bash",
         f".venv/bin/python -m evals.bench_retrieval --sizes {args.sizes} --queries {args.queries} \\",
         f"  --top-k {args.top_k} --passes {args.passes} --embedding-provider {args.embedding_provider} \\",
+        f"  --embedding-batch-size {args.embedding_batch_size} \\",
         f"  --ef-search {args.ef_search} --filter-ratio {args.filter_ratio} \\",
         "  --output evals/retrieval-bench.md",
         "```",

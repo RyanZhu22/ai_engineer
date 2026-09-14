@@ -41,7 +41,7 @@ sed -n '1,220p' docs/project-status.md   # 先读交接文件
 ```bash
 cd projects/llm-qa-service
 docker compose up -d                     # PostgreSQL 16 + pgvector
-.venv/bin/python -m pytest -q            # 应全绿（截至 2026-09-10：54 passed）
+.venv/bin/python -m pytest -q            # 应全绿（截至 2026-09-13：58 passed）
 ```
 
 要点：

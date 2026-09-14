@@ -25,7 +25,7 @@ source .venv/bin/activate
 python -m pytest -q
 ```
 
-**预期**：当前为 `54 passed`（用例数随功能增加会变化）。
+**预期**：当前为 `58 passed`（用例数随功能增加会变化）。
 **判断标准**：
 - 有失败 → 看失败用例名定位问题
 - 全绿 ≠ 全部正常，只代表「循环逻辑对」（mock LLM 模拟模型决策，不验证真实模型）
@@ -254,7 +254,7 @@ python -m pytest tests/test_api.py::test_calculator_rejects_unsafe_or_resource_i
 
 ```bash
 cd projects/llm-qa-service && source .venv/bin/activate
-python -m pytest -q                            # 1. 当前 54 个全绿
+python -m pytest -q                            # 1. 当前 58 个全绿
 curl -s http://127.0.0.1:8010/health           # 2. UP
 # 3. 登录后：算数 → calculator；4. 时间 → get_current_time；5. 手册问题 → search_knowledge_base
 # 6. use_mcp:true（未配置时）→ 503；7. max_iterations:11 → 422；8. 退出后 token → 401

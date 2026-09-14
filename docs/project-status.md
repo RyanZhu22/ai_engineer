@@ -3,7 +3,7 @@
 > 这是跨终端继续开发时的首个阅读入口。先看本文件，再按“文件入口”和“下一步”继续工作。
 > 跨端开工/收尾规则、长任务规范见 [`vibe-coding-workflow.md`](vibe-coding-workflow.md)。
 >
-> 最近更新：2026-09-10（HNSW 基准进行中）
+> 最近更新：2026-09-14（本地账号隔离验证完成；Render 云端 Shell 受 Free 计划限制）
 
 ## 1. 项目位置
 
@@ -12,8 +12,8 @@
 | 工作区 | `/Users/ryan/developer/career_study/ai_engineer` |
 | 服务项目 | `/Users/ryan/developer/career_study/ai_engineer/projects/llm-qa-service` |
 | 当前分支 | `main` |
-| 最近已提交版本 | `78f337d feat: password login and per-account resource isolation` |
-| 远端状态 | 本地 `main` 领先 `origin/main` 1 个提交（**78f337d 尚未推送**） |
+| 最近已提交版本 | `455f181 feat: add pgvector HNSW index, retrieval benchmark, and cross-end workflow docs` |
+| 远端状态 | `main` 与 `origin/main` 一致 |
 
 在新终端快速定位：
 
@@ -26,18 +26,21 @@ cd projects/llm-qa-service
 
 ## 2. 当前工作区状态
 
-P0-1“登录与账号级资源隔离”已提交为 `78f337d`，**尚未推送、Render 尚未重新部署**。
+P0-1“登录与账号级资源隔离”已提交为 `78f337d`；HNSW 索引与基准脚本已提交为 `455f181`，两者均已推送。
 
-当前未提交改动是 **P1：pgvector HNSW 向量索引 + 检索基准**，代码已完成，基准只跑通 mock：
+当前 P0 未提交改动是 HNSW 低内存基准支持、聚焦单测、正式报告和状态同步：
 
-- 代码：`app/config.py`（`rag_hnsw_*` 参数）、`app/db.py`（HNSW 索引 + 会话级 GUC + `pool_pre_ping` + 建/删/查索引）、`app/rag.py`（`vector_candidates`、`apply_hnsw_search_settings`、`ef_search` 参数）、`app/main.py`（`/documents/search` 支持 `ef_search` 覆盖并回显）
-- 新脚本（untracked）：`evals/bench_retrieval.py` —— 精确扫描 vs HNSW 的延迟 / 召回 / 过滤基准
-- mock 报告：`/tmp/bench-mock.md`（未入库）
-- 本次文档同步：`docs/project-status.md`、`docs/vibe-coding-workflow.md`、`progress.md`、`projects/llm-qa-service/evals/README.md`
+- 新测试：`tests/test_hnsw.py`，覆盖索引 DDL 参数、`ef_search` 边界与 `vector_candidates` 的 `document_ids` 过滤。
+- `evals/bench_retrieval.py` 新增 `--embedding-batch-size`（1–256）参数；`tests/test_bench_retrieval.py` 覆盖边界。
+- 正式报告：`evals/retrieval-bench.md`；文档同步：本文件、`progress.md`、服务 README、评测说明与测试手册。
 
-尚未完成：真实 bge 基准报告（`evals/retrieval-bench.md`）、HNSW 单测、提交。
+已完成：HNSW 代码、mock 基准、真实 local bge 基准、4 条新增 HNSW/基准测试、全量 58 个 pytest、CI 同款 mock hybrid 评测。
 
-⚠️ 2026-09-10 22:48 的本地 bge 运行因内存颠簸中止：8GB 机器上 Docker VM 占 4GB + swap 已用 6GB+，约 10 分钟才写入 256/2000 条切片。当时那条 `| tail -25` 命令还把输出全缓冲，看起来像死锁（实际在用 ONNX 推理）。重跑方式与防坑见 §4/§5 和 `vibe-coding-workflow.md` §3。数据库残留 512 条 `__bench_retrieval__` 切片，重跑时会自动清理。
+2026-09-13 经用户允许停止 `kimi-k8s-control-plane` 后，固定 256 条 batch 仍在 256/2,000 切片时进入内存颠簸，因此停止并清理了 20 个临时文档和 256 条临时切片。新增 32 条 batch 后，2,005 切片正式基准完成且临时数据自动清理。
+
+Render 已做只读验证：2026-09-13 `GET /health` 返回 200；未带 bearer token 的 `GET /history` 返回 401。Render Free 计划不提供 Shell，用户选择不升级，因此云端测试账号未创建。
+
+本地回退验证已完成（2026-09-14）：`p0-a-local`（`can_use_mcp=false`）和 `p0-mcp-local`（`can_use_mcp=true`）均为 active；用户已完成登录、账号隔离和 MCP 权限手测。密码未写入文档。
 
 不要在未确认前使用 `git reset --hard` 或覆盖这些文件。继续开发前先运行：
 
@@ -59,7 +62,7 @@ git diff --stat
 ### RAG、Agent、MCP
 
 - 向量检索 + BM25 + 句级 rerank + RRF 混合检索
-- pgvector HNSW 索引 + `ef_search` / `iterative_scan` 参数（代码已完成，基准未跑通，未提交）
+- pgvector HNSW 索引 + `ef_search` / `iterative_scan` 参数（代码、mock/local bge 基准和单测已完成）
 - `[资料1]` 来源引用和资料不足拒答
 - Agent 内置检索、AST 安全计算器、当前时间工具
 - stdio / Streamable HTTP MCP；server 与 tool allow-list
@@ -79,21 +82,23 @@ git diff --stat
 - 31 条版本化评测样本：29 条可回答、2 条不可回答
 - CI 离线门槛：mock + hybrid，Hit@1 ≥ 95%，Hit@4 = 100%
 - 真实 LLM 可选检查关键词、引用、拒答和 LLM-as-a-judge
-- Docker Compose 本地 pgvector；Render 云端部署和 Agent/MCP 验证已完成
+- Docker Compose 本地 pgvector；Render 云端部署和单账号 Agent/MCP 验证已完成；跨账号验证已在本地完成
 - GitHub Actions 已运行完整测试和 RAG 质量门槛
 
 ## 4. 最近验证结果
 
 | 检查 | 最近结果 |
 |---|---|
-| 自动化测试 | `54 passed in 5.13s`（P0-1 提交时；HNSW 改动后尚未复跑） |
-| 工作区格式检查 | `git diff --check` 通过（HNSW 改动后待复跑） |
+| 自动化测试 | `58 passed in 5.18s`（2026-09-13，含 HNSW 与低内存 batch 参数测试） |
+| 工作区格式检查 | `git diff --check` 通过（2026-09-13） |
 | mock + hybrid RAG | Hit@1 96.5%，Hit@3 100%，Hit@4 100%，MRR 0.9828 |
 | local bge + hybrid RAG | Hit@1/3/4 100%，MRR 1.0000 |
 | DeepSeek live + judge | 31/31 JSON 可解析；本次候选与裁判使用同一模型 |
 | PostgreSQL | Docker Compose 中 `llm-qa-pg` healthy |
 | mock HNSW 基准 | 20005 切片：精确 P95 70.3ms → HNSW 2.55ms（27.6×），建索引 1.71s；mock 向量下 Recall@10 0.49–0.72，只验证机制 |
-| local bge HNSW 基准 | ❌ 未完成：22:48 运行因本机内存颠簸中止（约 10 分钟/256 条切片） |
+| local bge HNSW 基准 | 2,005 切片、15 条查询、1 pass、batch=32：精确 P95 9.88ms；HNSW ef=100 P95 9.07ms、Recall@10 1.000；ef=10 Recall@10 0.624。规模偏小，不作为大规模吞吐 SLO。 |
+| Render 登录验证 | `GET /health` 为 200；未认证 `GET /history` 为 401（2026-09-13） |
+| 本地账号隔离与 MCP 权限手测 | 两个账号均 active；普通账号 `can_use_mcp=false`，MCP 账号 `can_use_mcp=true`；用户确认登录、隔离和权限验证完成（2026-09-14） |
 
 重新验证命令：
 
@@ -115,26 +120,24 @@ HNSW 基准（先释放内存 + 后台落盘日志，规则见 `vibe-coding-work
 docker stop kimi-k8s-control-plane cicd-demo-platform-jenkins-1 northstar-mysql cicd-demo-platform-docker-1
 
 nohup .venv/bin/python -u -m evals.bench_retrieval \
-  --sizes 2000 --queries 15 --passes 1 --embedding-provider local \
+  --sizes 2000 --queries 15 --passes 1 --embedding-provider local --embedding-batch-size 32 \
   --output evals/retrieval-bench.md > /tmp/bench.log 2>&1 &
 tail -f /tmp/bench.log
 ```
 
 ## 5. 下一步优先级
 
-### P0：收尾 HNSW 基准（当前任务）
+### P0：收尾 HNSW 与上线验证（当前任务）
 
-1. 释放内存后重跑本地 bge 基准（命令见 §4），产出 `evals/retrieval-bench.md`。
-2. 给 HNSW 代码补单测：索引 DDL 参数、`ef_search` 边界校验、`vector_candidates` 的文档过滤。
-3. 跑全量 pytest + `git diff --check`，提交代码、基准脚本、报告和文档。
+1. 本地 A/B 资源隔离和 MCP 权限验证已完成；Render Free 计划不提供 Shell，云端账号验证暂缓，不升级服务。
+2. 提交本次 HNSW 单测、低内存 batch 参数、报告和状态文档。
 
 ### P1：P0-1 上线 + 生产化缺口
 
-1. 推送 `78f337d`（**只有用户明确要求时才推送**），重新部署 Render，验证登录、跨账号隔离和 MCP 权限。
-2. 用 Alembic 管理 `users`、`login_sessions`、`owner_id`、HNSW 索引等 schema 迁移，替代生产环境依赖 `create_all`。
-3. 增加前端“清空历史”二次确认。
-4. 增加登录和高成本 LLM 接口的限流、审计日志和基础可观测性。
-5. 增加备份/恢复演练与 token/session 清理策略。
+1. 用 Alembic 管理 `users`、`login_sessions`、`owner_id`、HNSW 索引等 schema 迁移，替代生产环境依赖 `create_all`。
+2. 增加前端“清空历史”二次确认。
+3. 增加登录和高成本 LLM 接口的限流、审计日志和基础可观测性。
+4. 增加备份/恢复演练与 token/session 清理策略。
 
 ### P2：企业能力与规模化
 
@@ -155,7 +158,7 @@ tail -f /tmp/bench.log
 | RAG/LLM 评测命令和指标 | [`projects/llm-qa-service/evals/README.md`](../projects/llm-qa-service/evals/README.md) |
 | HNSW 向量索引基准脚本 | [`projects/llm-qa-service/evals/bench_retrieval.py`](../projects/llm-qa-service/evals/bench_retrieval.py) |
 | 项目总结、简历和面试素材 | [`llm-qa-service-project-summary.md`](llm-qa-service-project-summary.md)、[`llm-qa-service-interview-qa.md`](llm-qa-service-interview-qa.md)、[`../resume-ai-engineer.md`](../resume-ai-engineer.md) |
-| 最近的评测报告 | [`baseline.md`](../projects/llm-qa-service/evals/baseline.md)、[`latest-live-judge-report.refusal-v3.md`](../projects/llm-qa-service/evals/latest-live-judge-report.refusal-v3.md) |
+| 最近的评测报告 | [`baseline.md`](../projects/llm-qa-service/evals/baseline.md)、[`retrieval-bench.md`](../projects/llm-qa-service/evals/retrieval-bench.md)、[`latest-live-judge-report.refusal-v3.md`](../projects/llm-qa-service/evals/latest-live-judge-report.refusal-v3.md) |
 
 ## 7. 接手时的最短流程
 
@@ -165,16 +168,13 @@ tail -f /tmp/bench.log
   → git status / git diff
   → docker compose up -d
   → pytest -q
-  → 按 §5 P0 继续：重跑 bge 基准 → 补测试 → 提交
-  → 按需推送并重新部署 Render
+  → 按 §5 P0 继续：Render 跨账号验证 → 提交
 ```
 
 ## 8. 当前明确未完成
 
-- HNSW：真实 bge 基准报告未产出，代码无单测、未提交。
-- P0-1（`78f337d`）未推送、Render 未重新部署验证。
+- Render：登录拦截已验证；Free 计划无 Shell，跨账号隔离和 MCP 权限尚未用云端测试账号验证；本地等价验证已完成。
 - 没有企业 SSO、组织/部门权限和管理员后台。
 - 生产 schema 迁移尚未切换到 Alembic。
 - 前端清空历史没有二次确认。
 - 尚未完成独立裁判模型交叉复核。
-

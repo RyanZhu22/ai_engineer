@@ -68,8 +68,9 @@ docker compose up -d
   --output /tmp/bench-mock.md
 
 # 真实 bge 向量：先释放内存，后台运行并落盘日志（长任务规范见 ../../docs/vibe-coding-workflow.md §3）
+# 8GB 机器使用 32 条 batch 降低 embedding 内存峰值；报告会记录该参数。
 nohup .venv/bin/python -u -m evals.bench_retrieval \
-  --sizes 2000 --queries 15 --passes 1 --embedding-provider local \
+  --sizes 2000 --queries 15 --passes 1 --embedding-provider local --embedding-batch-size 32 \
   --output evals/retrieval-bench.md > /tmp/bench.log 2>&1 &
 tail -f /tmp/bench.log
 ```
