@@ -1,0 +1,15 @@
+.venv/
+frontend/node_modules/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+.env.*
+!.env.example
+*.py[cod]
+*.sqlite3
+data/
+logs/
+
+frontend/tsconfig.tsbuildinfo

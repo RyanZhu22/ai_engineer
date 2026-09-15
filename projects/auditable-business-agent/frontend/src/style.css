@@ -1,0 +1,8 @@
+:root { color: #e6edf7; background: #0b1020; font-family: Inter, "PingFang SC", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 940px; margin: 0 auto; padding: 52px 22px 80px; }
+header { margin-bottom: 28px; } h1 { margin: 6px 0 12px; font-size: 42px; } h2 { margin-top: 0; font-size: 19px; }
+.eyebrow { color: #63d8ff; font-size: 12px; letter-spacing: .14em; } .panel { background: #151d33; border: 1px solid #293756; border-radius: 12px; padding: 22px; margin-top: 16px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; } textarea { grid-column: span 2; min-height: 84px; } input, select, textarea, button { border-radius: 7px; border: 1px solid #3b4c70; background: #0e1528; color: inherit; padding: 10px; font: inherit; } button { cursor: pointer; background: #087ea4; border: none; font-weight: 700; } .message { color: #9dc6ff; } ol { padding-left: 22px; } li { padding: 13px 0; border-bottom: 1px solid #2a3652; } li span { display: block; color: #9eacc5; font-size: 13px; margin-top: 5px; } pre { overflow: auto; white-space: pre-wrap; color: #b7f1cf; font-size: 12px; } @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } textarea { grid-column: auto; } h1 { font-size: 32px; } }
+.actions { display: flex; gap: 10px; } button.secondary { background: #64465d; }

@@ -1,0 +1,20 @@
+services:
+  database:
+    image: pgvector/pgvector:pg16
+    container_name: auditable-business-agent-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agent_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-auditable_agent}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - auditable_agent_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  auditable_agent_pgdata:

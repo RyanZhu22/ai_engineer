@@ -1,0 +1,6 @@
+[
+  {"name": "return within window", "request_type": "return", "order_status": "delivered", "delivered_on": "2026-09-10", "today": "2026-09-15", "expected_rule_id": "RETURN_WITHIN_WINDOW"},
+  {"name": "return outside window", "request_type": "return", "order_status": "delivered", "delivered_on": "2026-09-01", "today": "2026-09-15", "expected_rule_id": "RETURN_OUTSIDE_WINDOW"},
+  {"name": "defect within warranty", "request_type": "defect", "order_status": "delivered", "delivered_on": "2026-01-01", "today": "2026-09-15", "expected_rule_id": "DEFECT_WITHIN_WARRANTY"},
+  {"name": "shipped tracking", "request_type": "tracking", "order_status": "shipped", "delivered_on": null, "today": "2026-09-15", "expected_rule_id": "TRACKING_SHIPPED"}
+]
