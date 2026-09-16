@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.cases import InMemoryCaseStore
-from app.knowledge import PolicyKnowledgeBase, default_knowledge_base
+from app.knowledge import KnowledgeBase, default_knowledge_base
 from app.models import (
     ActionType,
     Approval,
@@ -26,7 +26,7 @@ class CaseService:
         ticket_service: TicketWriter,
         audit_log: AuditSink,
         policy_engine: PolicyEngine | None = None,
-        knowledge_base: PolicyKnowledgeBase | None = None,
+        knowledge_base: KnowledgeBase | None = None,
         reply_generator: ReplyGenerator | None = None,
     ) -> None:
         self._case_store = case_store or InMemoryCaseStore()
@@ -72,6 +72,8 @@ class CaseService:
                         "version": item.version,
                         "excerpt": item.excerpt,
                         "score": item.score,
+                        "chunk_index": item.chunk_index,
+                        "source": item.source,
                     }
                     for item in evidence
                 ],

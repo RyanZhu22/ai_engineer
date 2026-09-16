@@ -48,7 +48,7 @@
 - LangGraph：工作流编排、状态持久化和人工审批
 - LangChain：模型、检索和工具适配
 - PostgreSQL：业务样例、工作流状态和审计记录
-- pgvector：知识库检索
+- pgvector：知识库向量检索
 - LangSmith：Trace、调试和离线评测
 - Docker Compose：本地运行
 
@@ -75,7 +75,7 @@ auditable-business-agent/
 1. ✅ 项目骨架、业务模型、模拟订单/工单工具、确定性规则引擎和审计日志
 2. LangGraph Agent 工作流与人工审批持久化
 3. ✅ 政策检索、引用证据、可替换的客服回复生成器和前端演示
-4. ✅ 审计查询、LangSmith 配置和黄金案例回归评测
+4. ✅ LangChain + pgvector 向量 RAG 与幂等政策导入
 5. API、Docker 和简历材料
 
 ## P0 验证
@@ -147,7 +147,7 @@ uv run uvicorn app.main:app --env-file .env --port 8000
 - `reply_generated`：客服回复和生成器来源；
 - `approval_*` 与 `action_executed`：审批和模拟副作用。
 
-政策文档位于 `sample_data/policies/`。当前检索器是可离线运行的版本化关键词基线；在接入稳定的 embedding 服务并完成语料评测前，不把伪向量检索写入业务存储。配置 `LLM_CHAT_COMPLETIONS_URL`、`LLM_API_KEY`、`LLM_MODEL` 后，回复生成会切换到 OpenAI-compatible Chat Completions；未配置时使用模板回复。LangGraph/LangChain 兼容 `LANGSMITH_TRACING`、`LANGSMITH_API_KEY` 和 `LANGSMITH_PROJECT` 环境变量。
+政策文档位于 `sample_data/policies/`。生产运行时使用 LangChain `Document`、`RecursiveCharacterTextSplitter`、`Embeddings` 和 `PGVector`。启动时会把政策文档切分、向量化并幂等写入 PostgreSQL；检索按 `request_type` 过滤，并返回文档 ID、版本、chunk 和摘录。默认 `RAG_EMBEDDING_PROVIDER=local` 使用可复现的本地向量实现，适合无密钥演示；配置 `RAG_EMBEDDING_PROVIDER=openai`、`EMBEDDING_API_KEY` 和对应维度后使用真实 OpenAI embeddings，OpenAI 向量保存在独立 collection 中，避免维度混用。配置 `LLM_CHAT_COMPLETIONS_URL`、`LLM_API_KEY`、`LLM_MODEL` 后，回复生成会切换到 OpenAI-compatible Chat Completions；未配置时使用模板回复。LangGraph/LangChain 兼容 `LANGSMITH_TRACING`、`LANGSMITH_API_KEY` 和 `LANGSMITH_PROJECT` 环境变量。
 
 运行黄金案例回归：
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from app.knowledge import KnowledgeBase
 from app.ports import AuditSink, CaseStore, UserRepository
 from app.repositories import (
     SessionFactory,
@@ -24,7 +25,12 @@ class AppRuntime:
     workflow: Any
 
 
-def build_runtime(session_factory: SessionFactory, checkpointer: Any) -> AppRuntime:
+def build_runtime(
+    session_factory: SessionFactory,
+    checkpointer: Any,
+    *,
+    knowledge_base: KnowledgeBase | None = None,
+) -> AppRuntime:
     case_store = SqlAlchemyCaseStore(session_factory)
     audit_log = SqlAlchemyAuditLog(session_factory)
     user_repository = SqlAlchemyUserRepository(session_factory)
@@ -33,6 +39,7 @@ def build_runtime(session_factory: SessionFactory, checkpointer: Any) -> AppRunt
         order_service=SqlAlchemyOrderService(session_factory),
         ticket_service=SqlAlchemyTicketService(session_factory),
         audit_log=audit_log,
+        knowledge_base=knowledge_base,
     )
     return AppRuntime(
         case_store=case_store,

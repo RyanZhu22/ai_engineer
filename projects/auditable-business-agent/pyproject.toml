@@ -16,6 +16,10 @@ dependencies = [
     "psycopg[binary]>=3.1",
     "sqlalchemy>=2.0",
     "uvicorn[standard]>=0.30",
+    "langchain-core>=1.6.3",
+    "langchain-openai>=1.6.2",
+    "langchain-postgres>=0.0.18",
+    "langchain-text-splitters>=1.1.2",
 ]
 
 [tool.setuptools.packages.find]

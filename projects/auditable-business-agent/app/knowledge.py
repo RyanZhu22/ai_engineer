@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from app.models import RequestType
 
@@ -13,7 +14,13 @@ class Evidence:
     title: str
     version: str
     excerpt: str
-    score: int
+    score: float
+    chunk_index: int | None = None
+    source: str | None = None
+
+
+class KnowledgeBase(Protocol):
+    def search(self, *, request_type: RequestType, query: str, limit: int = 3) -> tuple[Evidence, ...]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +30,7 @@ class PolicyDocument:
     version: str
     request_types: frozenset[RequestType]
     content: str
+    source: str = ""
 
 
 class PolicyKnowledgeBase:
@@ -37,19 +45,8 @@ class PolicyKnowledgeBase:
 
     @classmethod
     def from_directory(cls, directory: Path) -> PolicyKnowledgeBase:
-        documents: list[PolicyDocument] = []
-        for path in sorted(directory.glob("*.md")):
-            metadata, content = _parse_document(path.read_text(encoding="utf-8"))
-            documents.append(
-                PolicyDocument(
-                    document_id=metadata["document_id"],
-                    title=metadata["title"],
-                    version=metadata["version"],
-                    request_types=frozenset(RequestType(value.strip()) for value in metadata["request_types"].split(",")),
-                    content=content,
-                )
-            )
-        return cls(tuple(documents))
+        documents = load_policy_documents(directory)
+        return cls(documents)
 
     def search(self, *, request_type: RequestType, query: str, limit: int = 3) -> tuple[Evidence, ...]:
         terms = set(_terms(query))
@@ -64,10 +61,28 @@ class PolicyKnowledgeBase:
                         title=document.title,
                         version=document.version,
                         excerpt=_excerpt(document.content),
-                        score=score,
+                        score=float(score),
+                        source=document.source,
                     )
                 )
         return tuple(sorted(candidates, key=lambda item: (-item.score, item.document_id))[:limit])
+
+
+def load_policy_documents(directory: Path) -> tuple[PolicyDocument, ...]:
+    documents: list[PolicyDocument] = []
+    for path in sorted(directory.glob("*.md")):
+        metadata, content = _parse_document(path.read_text(encoding="utf-8"))
+        documents.append(
+            PolicyDocument(
+                document_id=metadata["document_id"],
+                title=metadata["title"],
+                version=metadata["version"],
+                request_types=frozenset(RequestType(value.strip()) for value in metadata["request_types"].split(",")),
+                content=content,
+                source=str(path),
+            )
+        )
+    return tuple(documents)
 
 
 def default_knowledge_base() -> PolicyKnowledgeBase:

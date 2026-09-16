@@ -10,7 +10,7 @@
 
 ## 当前阶段
 
-阶段 P2：可运行的政策检索、可替换客服回复生成、黄金案例评测和 React 演示页已完成。
+阶段 P3：基于 LangChain + pgvector 的政策向量检索已完成；审批 Agent、审计链路和 React 演示页可运行。
 
 已完成：
 
@@ -28,17 +28,18 @@
 - 添加本地用户管理命令和 JWT 角色校验；客服不能审批，审批人身份从 bearer token 派生。
 - 添加 `0002_users` migration；本地 PostgreSQL 已升级至 `0002_users (head)`。
 - 添加版本化政策文档和离线关键词检索；检索证据会以 `knowledge_retrieved` 事件进入审计轨迹。
+- 添加 LangChain `Document`、文本切分、embedding、PGVector collection 和幂等政策导入；检索证据会记录 chunk 位置和来源。
 - 添加 OpenAI-compatible 回复生成器；只有回复文案可由模型生成，规则与执行权限不交给模型。
 - 添加 4 条黄金案例回归评测和 React 操作、审计页面。
 - 添加 LangSmith 环境变量配置；提供密钥时可追踪 LangGraph 调用。
 
-本轮验证：10 个离线测试通过；`alembic heads` 指向 `0001_core_storage`；`alembic upgrade head --sql` 成功生成 PostgreSQL DDL。2026-09-15 已在本地 Docker PostgreSQL 容器完成 `alembic upgrade head`，容器状态为 healthy，`alembic current` 为 `0001_core_storage (head)`，并确认 `support_cases`、`orders`、`tickets`、`audit_events` 与 `alembic_version` 五张表已创建。
+本轮验证：20 个离线测试通过；4 条黄金案例通过；`alembic heads` 指向 `0003_enable_vector`。2026-09-16 已在本地 Docker PostgreSQL 容器完成迁移，确认 `vector` 扩展、LangChain 的 `langchain_pg_collection` / `langchain_pg_embedding` 表存在，政策 collection 含 3 个 chunks，并成功召回退货、维修和物流政策。
 
 ## 下一步
 
-1. 为政策文档引入 embedding 生成、pgvector 召回与检索质量评测；当前关键词基线保证无密钥时可运行。
+1. 用真实 embedding 配置运行检索质量评测，记录 Recall@K、MRR 和错误案例。
 2. 扩充黄金集，覆盖订单归属、文档缺失和模型失败降级。
-3. 添加审批人 Web 操作页与端到端浏览器测试。
+3. 添加浏览器端到端测试与 CI。
 4. 编写 Docker 生产镜像和简历项目说明。
 
 ## 暂不做

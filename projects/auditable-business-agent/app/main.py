@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -15,11 +16,12 @@ from langgraph.types import Command
 from pydantic import BaseModel, Field
 
 from app.auth import decode_access_token, issue_access_token, verify_password
-from app.config import langgraph_database_url
+from app.config import database_url, langgraph_database_url
 from app.db import build_session_factory
 from app.models import ApprovalStatus, RequestType, User, UserRole
 from app.repositories import SessionFactory
 from app.runtime import AppRuntime, build_runtime
+from app.vector_rag import VectorPolicyKnowledgeBase
 
 
 class CreateCaseInput(BaseModel):
@@ -56,7 +58,11 @@ def create_app(
         app.state.runtime = build_runtime(session_factory, checkpointer)
 
     bearer = HTTPBearer(auto_error=False)
-    app.mount("/ui", StaticFiles(directory="frontend/dist", html=True), name="ui")
+    app.mount(
+        "/ui",
+        StaticFiles(directory=Path(__file__).parent.parent / "frontend" / "dist", html=True),
+        name="ui",
+    )
 
     def current_user(
         request: Request,
@@ -181,7 +187,11 @@ def create_app(
 async def _production_lifespan(app: FastAPI):
     with PostgresSaver.from_conn_string(langgraph_database_url()) as checkpointer:
         checkpointer.setup()
-        app.state.runtime = build_runtime(build_session_factory(), checkpointer)
+        knowledge_base = VectorPolicyKnowledgeBase.from_database(
+            connection=database_url(),
+            documents_directory=_policy_documents_directory(),
+        )
+        app.state.runtime = build_runtime(build_session_factory(), checkpointer, knowledge_base=knowledge_base)
         yield
 
 
@@ -224,6 +234,10 @@ def _audit_events(case_id: str, app: FastAPI) -> list[dict[str, Any]]:
         }
         for event in _runtime(app).audit_log.events_for_case(case_id)
     ]
+
+
+def _policy_documents_directory():
+    return Path(__file__).parent.parent / "sample_data" / "policies"
 
 
 app = create_app()
