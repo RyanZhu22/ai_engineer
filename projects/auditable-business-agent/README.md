@@ -79,6 +79,7 @@ auditable-business-agent/
 5. ✅ API、Docker 生产镜像、RAG 质量评测和异常/安全测试
 6. ✅ 浏览器端到端测试与 GitHub Actions CI
 7. ✅ 本地 BGE 真实 Embedding、独立向量 collection 与真实检索评测
+8. ✅ 扩充 RAG 评测集：30 条平衡查询与边界样本
 
 ## P0 验证
 
@@ -177,7 +178,7 @@ uv run uvicorn app.main:app --env-file .env --port 8000
 uv run python evals/run_golden_cases.py
 ```
 
-运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，会输出 Recall@1、Recall@K 和 MRR。可复现的本地基线：
+运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，包含退货、维修、物流各 10 条查询，覆盖同义改写、时间边界、材料要求和物流延迟等干扰场景；脚本会输出 Recall@1、Recall@K 和 MRR。可复现的本地基线：
 
 ```bash
 uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.7

@@ -10,7 +10,7 @@
 
 ## 当前阶段
 
-阶段 P5：本地 BGE 真实 Embedding、政策检索评测、浏览器端到端测试和 CI 已完成；审批 Agent、审计链路和 React 演示页可运行。
+阶段 P6：本地 BGE 真实 Embedding、30 条 RAG 评测集、浏览器端到端测试和 CI 已完成；审批 Agent、审计链路和 React 演示页可运行。
 
 已完成：
 
@@ -32,18 +32,18 @@
 - 添加 OpenAI-compatible 回复生成器；只有回复文案可由模型生成，规则与执行权限不交给模型。
 - 添加 4 条黄金案例回归评测和 React 操作、审计页面。
 - 添加 LangSmith 环境变量配置；提供密钥时可追踪 LangGraph 调用。
-- 将检索评测集扩充为 12 条查询，输出 Recall@1、Recall@K、MRR 和逐案例检索结果 JSON。
+- 将检索评测集扩充为 30 条查询（退货、维修、物流各 10 条），覆盖同义改写、时间边界、材料要求和物流延迟干扰，输出 Recall@1、Recall@K、MRR 和逐案例检索结果 JSON。
 - 添加 Playwright 浏览器端到端测试：物流直通，以及退货暂停后由审批人恢复。
 - 添加独立 E2E 测试账号初始化脚本和 GitHub Actions CI；CI 在配置 `OPENAI_API_KEY` Secret 时额外运行 OpenAI Embedding 对照评测。
 - 添加 FastEmbed 本地 `BAAI/bge-small-zh-v1.5` 真实中文 Embedding；DeepSeek 继续只负责回复生成。
 - 为不同 Embedding provider/维度使用独立 PGVector collection 和文档 ID 命名空间；迁移 `0004_vector_unconstrained` 解除 LangChain 表的固定向量维度限制。
 - 将 BGE 真实检索评测加入 CI，默认 Docker 服务使用 BGE，并为模型缓存增加命名 volume。
 
-本轮验证：33 个离线测试、4 条黄金案例和 2 条 Playwright E2E 通过。BGE 真实 Embedding 在 12 条检索评测集上达到 Recall@1=1.0、MRR=1.0；local 256 维基线为 Recall@1=0.75、Recall@2=1.0、MRR=0.875。`alembic upgrade head` 已执行 `0004_vector_unconstrained`，Docker 镜像已重建并通过健康检查。OpenAI Embedding 仍是可选对照，CI 仅在 `OPENAI_API_KEY` Secret 存在时运行。
+本轮验证：33 个离线测试、4 条黄金案例和 2 条 Playwright E2E 通过。BGE 真实 Embedding 在 30 条检索评测集上达到 Recall@1=0.9667、Recall@2=1.0、MRR=0.9833；其中 1 条泛化物流状态查询在 Top-1 排位到延迟政策，Top-2 命中目标政策。local 256 维基线为 Recall@1=0.7667、Recall@2=1.0、MRR=0.8833。`alembic upgrade head` 已执行 `0004_vector_unconstrained`，Docker 镜像已重建并通过健康检查。OpenAI Embedding 仍是可选对照，CI 仅在 `OPENAI_API_KEY` Secret 存在时运行。
 
 ## 下一步
 
-1. 扩充政策语料和查询集后提高 BGE Recall@1 门槛，避免每个类型仅两篇文档时评测饱和。
+1. 扩充政策语料，增加跨主题干扰文档后再提高 BGE Recall@1 门槛。
 2. 扩充黄金集，覆盖更多订单归属、文档缺失和模型失败降级案例。
 3. 可选：配置 `OPENAI_API_KEY`，与本地 BGE 做成本、延迟和误召回对照。
 
