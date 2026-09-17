@@ -14,7 +14,7 @@ from app.vector_rag import VectorPolicyKnowledgeBase
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate policy retrieval with Recall@K and MRR")
     parser.add_argument("--k", type=int, default=2)
-    parser.add_argument("--provider", choices=["local", "openai"], default=None)
+    parser.add_argument("--provider", choices=["local", "bge", "openai"], default=None)
     parser.add_argument("--min-recall", type=float, default=1.0)
     parser.add_argument("--output", type=Path, help="Optional JSON report path")
     args = parser.parse_args()

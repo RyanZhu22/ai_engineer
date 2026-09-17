@@ -16,4 +16,5 @@ frontend/tsconfig.tsbuildinfo
 frontend/playwright-report/
 frontend/test-results/
 retrieval-local.json
+retrieval-bge.json
 retrieval-openai.json

@@ -7,6 +7,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+from fastembed import TextEmbedding
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
@@ -18,6 +19,8 @@ from app.models import RequestType
 
 
 LOCAL_EMBEDDING_DIMENSIONS = 256
+BGE_DEFAULT_MODEL = "BAAI/bge-small-zh-v1.5"
+VECTOR_COLLECTION_SCHEMA_VERSION = 2
 
 
 class LocalHashEmbeddings(Embeddings):
@@ -46,9 +49,23 @@ class LocalHashEmbeddings(Embeddings):
         return [value / norm for value in vector]
 
 
+class BgeEmbeddings(Embeddings):
+    """Local BGE embeddings backed by FastEmbed and ONNX Runtime."""
+
+    def __init__(self, model_name: str = BGE_DEFAULT_MODEL, cache_dir: str | None = None) -> None:
+        self._model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [[float(value) for value in vector] for vector in self._model.embed(texts)]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed_documents([text])[0]
+
+
 class VectorPolicyKnowledgeBase(KnowledgeBase):
-    def __init__(self, store: PGVector) -> None:
+    def __init__(self, store: PGVector, *, id_prefix: str = "") -> None:
         self._store = store
+        self._id_prefix = id_prefix
 
     @classmethod
     def from_database(
@@ -62,30 +79,45 @@ class VectorPolicyKnowledgeBase(KnowledgeBase):
         store = PGVector(
             embeddings=embeddings,
             connection=connection,
-            embedding_length=dimensions,
-            collection_name=f"policy_documents_{provider_name}_{dimensions}",
-            collection_metadata={"purpose": "auditable-business-agent-policy-rag", "provider": provider_name},
+            # Keep the shared LangChain table unconstrained. Collections encode
+            # the provider and dimensions, so local, BGE, and API embeddings
+            # can coexist without rewriting each other's vectors.
+            # ponytail: this prevents one shared vector index; split storage by
+            # dimension or add partial HNSW indexes once the corpus grows.
+            embedding_length=None,
+            collection_name=f"policy_documents_{provider_name}_{dimensions}_v{VECTOR_COLLECTION_SCHEMA_VERSION}",
+            collection_metadata={
+                "purpose": "auditable-business-agent-policy-rag",
+                "provider": provider_name,
+                "dimensions": dimensions,
+            },
             use_jsonb=True,
             create_extension=True,
         )
-        knowledge_base = cls(store)
+        knowledge_base = cls(
+            store,
+            id_prefix=f"{provider_name}_{dimensions}_v{VECTOR_COLLECTION_SCHEMA_VERSION}:",
+        )
         knowledge_base.ingest(documents_directory)
         return knowledge_base
 
     def ingest(self, documents_directory: Path) -> int:
         chunks = _chunk_documents(documents_directory)
-        ids = [document.id for document in chunks]
-        existing = {document.id: document for document in self._store.get_by_ids(ids)}
+        ids = [self._store_id(document) for document in chunks]
+        existing = {str(document.id): document for document in self._store.get_by_ids(ids)}
         changed = [
             document
             for document in chunks
-            if document.id not in existing
-            or existing[document.id].page_content != document.page_content
-            or existing[document.id].metadata != document.metadata
+            if self._store_id(document) not in existing
+            or existing[self._store_id(document)].page_content != document.page_content
+            or existing[self._store_id(document)].metadata != document.metadata
         ]
         if changed:
-            self._store.add_documents(changed, ids=[str(document.id) for document in changed])
+            self._store.add_documents(changed, ids=[self._store_id(document) for document in changed])
         return len(changed)
+
+    def _store_id(self, document: Document) -> str:
+        return f"{self._id_prefix}{document.id}"
 
     def search(self, *, request_type: RequestType, query: str, limit: int = 3) -> tuple[Evidence, ...]:
         matches = self._store.similarity_search_with_score(
@@ -117,8 +149,11 @@ def _build_embeddings(provider: str | None) -> tuple[Embeddings, int, str]:
     selected = (provider or os.getenv("RAG_EMBEDDING_PROVIDER", "local")).lower()
     if selected == "local":
         return LocalHashEmbeddings(), LOCAL_EMBEDDING_DIMENSIONS, "local"
+    if selected == "bge":
+        model_name = os.getenv("BGE_EMBEDDING_MODEL", BGE_DEFAULT_MODEL)
+        return BgeEmbeddings(model_name=model_name, cache_dir=os.getenv("BGE_CACHE_DIR")), TextEmbedding.get_embedding_size(model_name), "bge"
     if selected != "openai":
-        raise ValueError("RAG_EMBEDDING_PROVIDER must be local or openai")
+        raise ValueError("RAG_EMBEDDING_PROVIDER must be local, bge, or openai")
 
     api_key = os.getenv("EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:

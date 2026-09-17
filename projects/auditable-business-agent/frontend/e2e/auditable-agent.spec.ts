@@ -12,6 +12,12 @@ async function login(page: Page, username: string, password: string) {
   await expect(page.locator(".message")).toContainText("登录成功");
 }
 
+function waitForCaseCreation(page: Page) {
+  return page.waitForResponse((response) =>
+    response.url().endsWith("/cases") && response.request().method() === "POST",
+  );
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
@@ -21,7 +27,9 @@ test("tracking case completes without approval", async ({ page }) => {
   await page.locator('input[name="order_id"]').fill("ORD-101");
   await page.locator('select[name="request_type"]').selectOption("tracking");
   await page.locator('textarea[name="summary"]').fill("请查询物流状态。");
+  const created = waitForCaseCreation(page);
   await page.getByRole("button", { name: "提交案例" }).click();
+  await created;
 
   await expect(page.locator(".message")).toContainText("案例已完成，无需审批");
   await expect(page.getByText(/^状态：\s*completed$/)).toBeVisible();
@@ -34,7 +42,9 @@ test("return case pauses and can be approved", async ({ page }) => {
   await page.locator('input[name="order_id"]').fill("ORD-100");
   await page.locator('select[name="request_type"]').selectOption("return");
   await page.locator('textarea[name="summary"]').fill("商品不适合，申请退货。");
+  const created = waitForCaseCreation(page);
   await page.getByRole("button", { name: "提交案例" }).click();
+  await created;
 
   await expect(page.locator(".message")).toContainText("案例已暂停，等待审批人操作");
   await expect(page.getByText(/^状态：\s*pending_approval$/)).toBeVisible();

@@ -10,7 +10,7 @@
 
 ## 当前阶段
 
-阶段 P4：基于 LangChain + pgvector 的政策向量检索、评测、浏览器端到端测试和 CI 已完成；审批 Agent、审计链路和 React 演示页可运行。
+阶段 P5：本地 BGE 真实 Embedding、政策检索评测、浏览器端到端测试和 CI 已完成；审批 Agent、审计链路和 React 演示页可运行。
 
 已完成：
 
@@ -34,15 +34,18 @@
 - 添加 LangSmith 环境变量配置；提供密钥时可追踪 LangGraph 调用。
 - 将检索评测集扩充为 12 条查询，输出 Recall@1、Recall@K、MRR 和逐案例检索结果 JSON。
 - 添加 Playwright 浏览器端到端测试：物流直通，以及退货暂停后由审批人恢复。
-- 添加独立 E2E 测试账号初始化脚本和 GitHub Actions CI；CI 在配置 `OPENAI_API_KEY` Secret 时额外运行真实 Embedding 评测。
+- 添加独立 E2E 测试账号初始化脚本和 GitHub Actions CI；CI 在配置 `OPENAI_API_KEY` Secret 时额外运行 OpenAI Embedding 对照评测。
+- 添加 FastEmbed 本地 `BAAI/bge-small-zh-v1.5` 真实中文 Embedding；DeepSeek 继续只负责回复生成。
+- 为不同 Embedding provider/维度使用独立 PGVector collection 和文档 ID 命名空间；迁移 `0004_vector_unconstrained` 解除 LangChain 表的固定向量维度限制。
+- 将 BGE 真实检索评测加入 CI，默认 Docker 服务使用 BGE，并为模型缓存增加命名 volume。
 
-本轮验证：31 个离线测试通过；4 条黄金案例通过；12 条 RAG 本地基线案例通过（Recall@1=0.75，Recall@2=1.0，MRR=0.875）；2 条 Playwright E2E 通过。当前环境未配置 Embedding API 密钥，因此真实 OpenAI Embedding 指标尚未执行；脚本会在缺少密钥时明确失败，CI 只在 `OPENAI_API_KEY` Secret 存在时运行该步骤。`alembic heads` 指向 `0003_enable_vector`。2026-09-16 已在本地 Docker PostgreSQL 容器完成迁移，确认 `vector` 扩展、LangChain 的 `langchain_pg_collection` / `langchain_pg_embedding` 表存在，政策 collection 含 6 个 chunks，并成功召回退货、保修和物流政策。异常测试覆盖缺失订单、订单归属不匹配、重复 case、非法请求体和不存在案例审批；安全测试覆盖认证、JWT 篡改、过期 token 和角色一致性。Docker 多阶段镜像已构建，API 与 PostgreSQL 均通过健康检查。
+本轮验证：33 个离线测试、4 条黄金案例和 2 条 Playwright E2E 通过。BGE 真实 Embedding 在 12 条检索评测集上达到 Recall@1=1.0、MRR=1.0；local 256 维基线为 Recall@1=0.75、Recall@2=1.0、MRR=0.875。`alembic upgrade head` 已执行 `0004_vector_unconstrained`，Docker 镜像已重建并通过健康检查。OpenAI Embedding 仍是可选对照，CI 仅在 `OPENAI_API_KEY` Secret 存在时运行。
 
 ## 下一步
 
-1. 在本地 `.env` 或 GitHub Actions Secret 配置 `OPENAI_API_KEY`，记录真实 Embedding 指标并分析误召回案例。
-2. 扩充政策语料后提高 Recall@1 基线门槛，避免每个类型仅两篇文档时 Recall@2 饱和。
-3. 扩充黄金集，覆盖更多订单归属、文档缺失和模型失败降级案例。
+1. 扩充政策语料和查询集后提高 BGE Recall@1 门槛，避免每个类型仅两篇文档时评测饱和。
+2. 扩充黄金集，覆盖更多订单归属、文档缺失和模型失败降级案例。
+3. 可选：配置 `OPENAI_API_KEY`，与本地 BGE 做成本、延迟和误召回对照。
 
 ## 暂不做
 

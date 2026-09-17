@@ -78,6 +78,7 @@ auditable-business-agent/
 4. ✅ LangChain + pgvector 向量 RAG 与幂等政策导入
 5. ✅ API、Docker 生产镜像、RAG 质量评测和异常/安全测试
 6. ✅ 浏览器端到端测试与 GitHub Actions CI
+7. ✅ 本地 BGE 真实 Embedding、独立向量 collection 与真实检索评测
 
 ## P0 验证
 
@@ -168,7 +169,7 @@ uv run uvicorn app.main:app --env-file .env --port 8000
 - `reply_generated`：客服回复和生成器来源；
 - `approval_*` 与 `action_executed`：审批和模拟副作用。
 
-政策文档位于 `sample_data/policies/`。生产运行时使用 LangChain `Document`、`RecursiveCharacterTextSplitter`、`Embeddings` 和 `PGVector`。启动时会把政策文档切分、向量化并幂等写入 PostgreSQL；检索按 `request_type` 过滤，并返回文档 ID、版本、chunk 和摘录。默认 `RAG_EMBEDDING_PROVIDER=local` 使用可复现的本地向量实现，适合无密钥演示；配置 `RAG_EMBEDDING_PROVIDER=openai`、`EMBEDDING_API_KEY` 和对应维度后使用真实 OpenAI embeddings，OpenAI 向量保存在独立 collection 中，避免维度混用。配置 `LLM_CHAT_COMPLETIONS_URL`、`LLM_API_KEY`、`LLM_MODEL` 后，回复生成会切换到 OpenAI-compatible Chat Completions；未配置时使用模板回复。LangGraph/LangChain 兼容 `LANGSMITH_TRACING`、`LANGSMITH_API_KEY` 和 `LANGSMITH_PROJECT` 环境变量。
+政策文档位于 `sample_data/policies/`。生产运行时使用 LangChain `Document`、`RecursiveCharacterTextSplitter`、`Embeddings` 和 `PGVector`。启动时会把政策文档切分、向量化并幂等写入 PostgreSQL；检索按 `request_type` 过滤，并返回文档 ID、版本、chunk 和摘录。默认 `RAG_EMBEDDING_PROVIDER=bge` 使用 FastEmbed 的本地 `BAAI/bge-small-zh-v1.5`（512 维）进行真实中文 embedding；首次运行会下载模型。`local` 是可复现的 256 维基线；`openai` 需要 `EMBEDDING_API_KEY`。不同 provider 和维度写入独立 collection，避免混用。`LLM_CHAT_COMPLETIONS_URL`、`LLM_API_KEY`、`LLM_MODEL` 控制 OpenAI-compatible 回复生成器，可配置 DeepSeek；它与 embedding provider 独立。未配置时使用模板回复。LangGraph/LangChain 兼容 `LANGSMITH_TRACING`、`LANGSMITH_API_KEY` 和 `LANGSMITH_PROJECT` 环境变量。
 
 运行黄金案例回归：
 
@@ -176,13 +177,19 @@ uv run uvicorn app.main:app --env-file .env --port 8000
 uv run python evals/run_golden_cases.py
 ```
 
-运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，会输出 Recall@1、Recall@K 和 MRR。默认使用无需密钥的本地可复现 embedding：
+运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，会输出 Recall@1、Recall@K 和 MRR。可复现的本地基线：
 
 ```bash
 uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.7
 ```
 
-真实 Embedding 评测需要在 `.env` 设置 `EMBEDDING_API_KEY`（或 `OPENAI_API_KEY`）以及 `RAG_EMBEDDING_PROVIDER=openai`。OpenAI 向量会写入独立 collection，不会覆盖本地基线：
+本地 BGE 的真实 embedding 评测不需要 API Key：
+
+```bash
+uv run --env-file .env python evals/run_retrieval_eval.py --provider bge --k 1 --min-recall 0.9 --output retrieval-bge.json
+```
+
+OpenAI embedding 是可选对照，需要在 `.env` 设置 `EMBEDDING_API_KEY`（或 `OPENAI_API_KEY`）以及 `RAG_EMBEDDING_PROVIDER=openai`：
 
 ```bash
 uv run --env-file .env python evals/run_retrieval_eval.py --provider openai --k 1 --min-recall 0.8 --output retrieval-openai.json
@@ -199,7 +206,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-GitHub Actions 配置位于 `.github/workflows/ci.yml`，会执行单元测试、黄金案例、RAG 本地基线、前端构建、Docker 和浏览器 E2E。仓库配置 `OPENAI_API_KEY` Secret 后，CI 会额外运行真实 OpenAI Embedding 评测并上传结果 JSON。
+GitHub Actions 配置位于 `.github/workflows/ci.yml`，会执行单元测试、黄金案例、local 与 BGE 检索评测、前端构建、Docker 和浏览器 E2E。仓库配置 `OPENAI_API_KEY` Secret 后，CI 会额外运行 OpenAI Embedding 对照评测并上传结果 JSON。
 
 异常与安全回归覆盖：缺失订单、订单归属不匹配、重复 `case_id`、未认证请求、篡改 JWT，以及 JWT 声明角色与数据库角色不一致。运行全部测试：
 
