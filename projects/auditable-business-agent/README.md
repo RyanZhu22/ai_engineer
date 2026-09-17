@@ -73,10 +73,11 @@ auditable-business-agent/
 ## 开发阶段
 
 1. ✅ 项目骨架、业务模型、模拟订单/工单工具、确定性规则引擎和审计日志
-2. LangGraph Agent 工作流与人工审批持久化
+2. ✅ LangGraph Agent 工作流与人工审批持久化
 3. ✅ 政策检索、引用证据、可替换的客服回复生成器和前端演示
 4. ✅ LangChain + pgvector 向量 RAG 与幂等政策导入
-5. API、Docker 和简历材料
+5. ✅ API、Docker 生产镜像、RAG 质量评测和异常/安全测试
+6. ✅ 浏览器端到端测试与 GitHub Actions CI
 
 ## P0 验证
 
@@ -84,15 +85,34 @@ P0 与 P1 的存储测试不依赖大模型。默认使用 SQLite 临时库验�
 
 ```bash
 uv run python -m unittest discover -s tests -v
+```
 
 ### PostgreSQL 本地启动
 
 ```bash
 cp .env.example .env
-docker compose up -d
+docker compose up -d database
 uv sync
 uv run alembic upgrade head
 uv run python -m app.seed
+```
+
+### Docker 生产化验证
+
+Docker 镜像使用多阶段构建：Node 阶段编译 React，Python 阶段只保留运行时依赖、API、迁移文件和政策文档。API 容器启动时执行迁移和幂等 seed，健康检查通过后才对外提供服务。
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+docker compose ps
+curl http://127.0.0.1:8000/health
+```
+
+打开 `http://127.0.0.1:8000/` 验证 Web 演示。查看日志或停止服务：
+
+```bash
+docker compose logs --tail=100 api
+docker compose down
 ```
 
 ### P1 API 与审批工作流
@@ -114,6 +134,8 @@ uv run python -m app.manage_users reviewer-1 --reset-password
 启动 API：
 
 ```bash
+# 如果 API 容器正在运行，先停止它以释放 8000 端口
+docker compose stop api
 uv run uvicorn app.main:app --env-file .env --port 8000 --reload
 ```
 
@@ -126,7 +148,6 @@ uv run uvicorn app.main:app --env-file .env --port 8000 --reload
 5. 调用 `GET /cases/{case_id}/audit` 查看完整审计事件。
 
 `customer_service` 账号不能调用审批接口；`approver` 才能批准或拒绝。开发环境的 `.env` 必须设置唯一的 `AUTH_SECRET`，部署前不要使用示例值。
-```
 
 ### P2 Web 演示与检索
 
@@ -153,6 +174,37 @@ uv run uvicorn app.main:app --env-file .env --port 8000
 
 ```bash
 uv run python evals/run_golden_cases.py
+```
+
+运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，会输出 Recall@1、Recall@K 和 MRR。默认使用无需密钥的本地可复现 embedding：
+
+```bash
+uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.7
+```
+
+真实 Embedding 评测需要在 `.env` 设置 `EMBEDDING_API_KEY`（或 `OPENAI_API_KEY`）以及 `RAG_EMBEDDING_PROVIDER=openai`。OpenAI 向量会写入独立 collection，不会覆盖本地基线：
+
+```bash
+uv run --env-file .env python evals/run_retrieval_eval.py --provider openai --k 1 --min-recall 0.8 --output retrieval-openai.json
+```
+
+浏览器端到端测试使用独立的 `e2e-agent` 和 `e2e-approver` 账号，不会修改手动演示账号。先确保 Docker API 运行，再执行：
+
+```bash
+docker compose up -d
+uv run --env-file .env python scripts/seed_e2e_users.py
+cd frontend
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+GitHub Actions 配置位于 `.github/workflows/ci.yml`，会执行单元测试、黄金案例、RAG 本地基线、前端构建、Docker 和浏览器 E2E。仓库配置 `OPENAI_API_KEY` Secret 后，CI 会额外运行真实 OpenAI Embedding 评测并上传结果 JSON。
+
+异常与安全回归覆盖：缺失订单、订单归属不匹配、重复 `case_id`、未认证请求、篡改 JWT，以及 JWT 声明角色与数据库角色不一致。运行全部测试：
+
+```bash
+uv run python -m unittest discover -s tests -v
 ```
 
 当前状态见 [`docs/project-status.md`](docs/project-status.md)。

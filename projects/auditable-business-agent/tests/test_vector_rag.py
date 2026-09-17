@@ -40,17 +40,18 @@ class VectorRagTests(unittest.TestCase):
         knowledge_base = VectorPolicyKnowledgeBase(store)
         directory = Path(__file__).parent.parent / "sample_data" / "policies"
 
-        self.assertEqual(knowledge_base.ingest(directory), 3)
+        self.assertEqual(knowledge_base.ingest(directory), 6)
         self.assertEqual(knowledge_base.ingest(directory), 0)
         result = knowledge_base.search(request_type=RequestType.RETURN, query="申请退货")
 
-        self.assertEqual(result[0].document_id, "return-policy")
-        self.assertEqual(result[0].chunk_index, 0)
-        self.assertIn("sample_data/policies/return-policy.md", result[0].source)
+        self.assertIn("return-policy", [item.document_id for item in result])
+        policy = next(item for item in result if item.document_id == "return-policy")
+        self.assertEqual(policy.chunk_index, 0)
+        self.assertIn("sample_data/policies/return-policy.md", policy.source)
 
     def test_policy_documents_are_split_into_langchain_documents(self) -> None:
         chunks = _chunk_documents(Path(__file__).parent.parent / "sample_data" / "policies")
-        self.assertEqual(len(chunks), 3)
+        self.assertEqual(len(chunks), 6)
         self.assertTrue(all(document.id and document.metadata["version"] == "2026.09" for document in chunks))
 
 

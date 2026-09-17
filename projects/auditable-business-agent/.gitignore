@@ -13,3 +13,7 @@ data/
 logs/
 
 frontend/tsconfig.tsbuildinfo
+frontend/playwright-report/
+frontend/test-results/
+retrieval-local.json
+retrieval-openai.json

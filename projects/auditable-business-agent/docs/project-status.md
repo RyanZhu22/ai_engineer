@@ -10,7 +10,7 @@
 
 ## 当前阶段
 
-阶段 P3：基于 LangChain + pgvector 的政策向量检索已完成；审批 Agent、审计链路和 React 演示页可运行。
+阶段 P4：基于 LangChain + pgvector 的政策向量检索、评测、浏览器端到端测试和 CI 已完成；审批 Agent、审计链路和 React 演示页可运行。
 
 已完成：
 
@@ -32,15 +32,17 @@
 - 添加 OpenAI-compatible 回复生成器；只有回复文案可由模型生成，规则与执行权限不交给模型。
 - 添加 4 条黄金案例回归评测和 React 操作、审计页面。
 - 添加 LangSmith 环境变量配置；提供密钥时可追踪 LangGraph 调用。
+- 将检索评测集扩充为 12 条查询，输出 Recall@1、Recall@K、MRR 和逐案例检索结果 JSON。
+- 添加 Playwright 浏览器端到端测试：物流直通，以及退货暂停后由审批人恢复。
+- 添加独立 E2E 测试账号初始化脚本和 GitHub Actions CI；CI 在配置 `OPENAI_API_KEY` Secret 时额外运行真实 Embedding 评测。
 
-本轮验证：20 个离线测试通过；4 条黄金案例通过；`alembic heads` 指向 `0003_enable_vector`。2026-09-16 已在本地 Docker PostgreSQL 容器完成迁移，确认 `vector` 扩展、LangChain 的 `langchain_pg_collection` / `langchain_pg_embedding` 表存在，政策 collection 含 3 个 chunks，并成功召回退货、维修和物流政策。
+本轮验证：31 个离线测试通过；4 条黄金案例通过；12 条 RAG 本地基线案例通过（Recall@1=0.75，Recall@2=1.0，MRR=0.875）；2 条 Playwright E2E 通过。当前环境未配置 Embedding API 密钥，因此真实 OpenAI Embedding 指标尚未执行；脚本会在缺少密钥时明确失败，CI 只在 `OPENAI_API_KEY` Secret 存在时运行该步骤。`alembic heads` 指向 `0003_enable_vector`。2026-09-16 已在本地 Docker PostgreSQL 容器完成迁移，确认 `vector` 扩展、LangChain 的 `langchain_pg_collection` / `langchain_pg_embedding` 表存在，政策 collection 含 6 个 chunks，并成功召回退货、保修和物流政策。异常测试覆盖缺失订单、订单归属不匹配、重复 case、非法请求体和不存在案例审批；安全测试覆盖认证、JWT 篡改、过期 token 和角色一致性。Docker 多阶段镜像已构建，API 与 PostgreSQL 均通过健康检查。
 
 ## 下一步
 
-1. 用真实 embedding 配置运行检索质量评测，记录 Recall@K、MRR 和错误案例。
-2. 扩充黄金集，覆盖订单归属、文档缺失和模型失败降级。
-3. 添加浏览器端到端测试与 CI。
-4. 编写 Docker 生产镜像和简历项目说明。
+1. 在本地 `.env` 或 GitHub Actions Secret 配置 `OPENAI_API_KEY`，记录真实 Embedding 指标并分析误召回案例。
+2. 扩充政策语料后提高 Recall@1 基线门槛，避免每个类型仅两篇文档时 Recall@2 饱和。
+3. 扩充黄金集，覆盖更多订单归属、文档缺失和模型失败降级案例。
 
 ## 暂不做
 

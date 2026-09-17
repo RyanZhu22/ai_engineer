@@ -16,5 +16,25 @@ services:
       timeout: 3s
       retries: 5
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auditable-business-agent-api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-agent_dev_only}@database:5432/${POSTGRES_DB:-auditable_agent}
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
 volumes:
   auditable_agent_pgdata:

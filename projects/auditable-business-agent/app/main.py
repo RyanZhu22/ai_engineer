@@ -109,6 +109,8 @@ def create_app(
         _: User = Depends(require_roles(UserRole.CUSTOMER_SERVICE, UserRole.APPROVER)),
     ) -> dict[str, Any]:
         case_id = payload.case_id or f"CASE-{uuid4()}"
+        if payload.case_id and _runtime(app).case_store.get(case_id) is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Case ID already exists")
         request_id = f"REQ-{uuid4()}"
         state = {
             "case_id": case_id,
