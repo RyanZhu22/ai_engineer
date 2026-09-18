@@ -28,5 +28,11 @@
   {"name": "tracking signed status", "request_type": "tracking", "query": "订单显示已签收，怎样确认签收状态", "expected_document_id": "tracking-policy"},
   {"name": "tracking past promise", "request_type": "tracking", "query": "物流超过承诺时间还不更新要怎么办", "expected_document_id": "tracking-delay-policy"},
   {"name": "tracking specialist", "request_type": "tracking", "query": "快递一直没有更新，能否转专员处理", "expected_document_id": "tracking-delay-policy"},
-  {"name": "tracking delay ticket", "request_type": "tracking", "query": "物流延迟可以创建退货工单吗", "expected_document_id": "tracking-delay-policy"}
+  {"name": "tracking delay ticket", "request_type": "tracking", "query": "物流延迟可以创建退货工单吗", "expected_document_id": "tracking-delay-policy"},
+  {"name": "return refund timing", "request_type": "return", "query": "退货审批通过后退款什么时候到账", "expected_document_id": "return-refund-policy"},
+  {"name": "return refund account", "request_type": "return", "query": "退货退款会退回原支付账户吗", "expected_document_id": "return-refund-policy"},
+  {"name": "repair ticket process", "request_type": "defect", "query": "维修审批通过后工单什么时候创建", "expected_document_id": "warranty-service-process-policy"},
+  {"name": "repair ticket progress", "request_type": "defect", "query": "我想查询维修工单处理进度", "expected_document_id": "warranty-service-process-policy"},
+  {"name": "cancelled order tracking", "request_type": "tracking", "query": "取消的订单为什么查不到物流", "expected_document_id": "tracking-exception-policy"},
+  {"name": "delivery exception", "request_type": "tracking", "query": "配送异常应该找谁跟进", "expected_document_id": "tracking-exception-policy"}
 ]

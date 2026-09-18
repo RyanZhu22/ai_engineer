@@ -34,8 +34,8 @@ jobs:
       - run: docker compose up -d --build
       - run: until curl -fsS http://127.0.0.1:8000/health; do sleep 2; done
       - run: uv run --env-file .env python scripts/seed_e2e_users.py
-      - run: uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.7 --output retrieval-local.json
-      - run: uv run --env-file .env python evals/run_retrieval_eval.py --provider bge --k 1 --min-recall 0.9 --output retrieval-bge.json
+      - run: uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.65 --output retrieval-local.json
+      - run: uv run --env-file .env python evals/run_retrieval_eval.py --provider bge --k 1 --min-recall 0.91 --output retrieval-bge.json
       - run: npx playwright install --with-deps chromium
         working-directory: projects/auditable-business-agent/frontend
       - run: npm run test:e2e

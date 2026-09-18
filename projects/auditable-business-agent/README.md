@@ -79,7 +79,7 @@ auditable-business-agent/
 5. ✅ API、Docker 生产镜像、RAG 质量评测和异常/安全测试
 6. ✅ 浏览器端到端测试与 GitHub Actions CI
 7. ✅ 本地 BGE 真实 Embedding、独立向量 collection 与真实检索评测
-8. ✅ 扩充 RAG 评测集：30 条平衡查询与边界样本
+8. ✅ 扩充 RAG 评测集：36 条平衡查询、边界样本与跨主题干扰样本
 
 ## P0 验证
 
@@ -178,16 +178,16 @@ uv run uvicorn app.main:app --env-file .env --port 8000
 uv run python evals/run_golden_cases.py
 ```
 
-运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，包含退货、维修、物流各 10 条查询，覆盖同义改写、时间边界、材料要求和物流延迟等干扰场景；脚本会输出 Recall@1、Recall@K 和 MRR。可复现的本地基线：
+运行政策向量检索质量评测。评测集位于 `evals/retrieval_cases.json`，包含 36 条退货、维修、物流查询，覆盖同义改写、时间边界、材料要求、物流延迟和跨主题干扰文档；脚本会输出 Recall@1、Recall@K 和 MRR。可复现的本地基线：
 
 ```bash
-uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.7
+uv run --env-file .env python evals/run_retrieval_eval.py --provider local --k 1 --min-recall 0.65
 ```
 
 本地 BGE 的真实 embedding 评测不需要 API Key：
 
 ```bash
-uv run --env-file .env python evals/run_retrieval_eval.py --provider bge --k 1 --min-recall 0.9 --output retrieval-bge.json
+uv run --env-file .env python evals/run_retrieval_eval.py --provider bge --k 1 --min-recall 0.91 --output retrieval-bge.json
 ```
 
 OpenAI embedding 是可选对照，需要在 `.env` 设置 `EMBEDDING_API_KEY`（或 `OPENAI_API_KEY`）以及 `RAG_EMBEDDING_PROVIDER=openai`：
@@ -209,7 +209,7 @@ npm run test:e2e
 
 GitHub Actions 配置位于 `.github/workflows/ci.yml`，会执行单元测试、黄金案例、local 与 BGE 检索评测、前端构建、Docker 和浏览器 E2E。仓库配置 `OPENAI_API_KEY` Secret 后，CI 会额外运行 OpenAI Embedding 对照评测并上传结果 JSON。
 
-异常与安全回归覆盖：缺失订单、订单归属不匹配、重复 `case_id`、未认证请求、篡改 JWT，以及 JWT 声明角色与数据库角色不一致。运行全部测试：
+异常与安全回归覆盖：缺失订单、订单归属不匹配、重复 `case_id`、未认证请求、篡改 JWT、JWT 声明角色与数据库角色不一致、政策文档缺失和回复模型失败降级。运行全部测试：
 
 ```bash
 uv run python -m unittest discover -s tests -v

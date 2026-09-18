@@ -14,7 +14,7 @@ from app.models import (
 )
 from app.policy import PolicyEngine
 from app.ports import AuditSink, CaseStore, OrderReader, TicketWriter
-from app.reply import ReplyGenerator, configured_reply_generator
+from app.reply import ReplyGenerator, TemplateReplyGenerator, configured_reply_generator
 
 
 class CaseService:
@@ -103,11 +103,30 @@ class CaseService:
             },
             request_id=request_id,
         )
-        reply, provider = self._reply_generator.generate(
-            summary=request.summary,
-            decision=decision,
-            evidence=evidence,
-        )
+        try:
+            reply, provider = self._reply_generator.generate(
+                summary=request.summary,
+                decision=decision,
+                evidence=evidence,
+            )
+        except Exception as error:
+            provider = "template"
+            reply, _ = TemplateReplyGenerator().generate(
+                summary=request.summary,
+                decision=decision,
+                evidence=evidence,
+            )
+            self._audit_log.append(
+                case_id=request.case_id,
+                event_type="reply_generation_failed",
+                actor_type="system",
+                actor_id="reply_generator",
+                payload={
+                    "error_type": type(error).__name__,
+                    "fallback_provider": provider,
+                },
+                request_id=request_id,
+            )
         self._audit_log.append(
             case_id=request.case_id,
             event_type="reply_generated",

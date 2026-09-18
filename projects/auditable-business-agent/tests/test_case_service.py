@@ -7,6 +7,11 @@ from app.service import CaseService
 from app.tools import MockOrderService, MockTicketService
 
 
+class FailingReplyGenerator:
+    def generate(self, **_kwargs: object) -> tuple[str, str]:
+        raise RuntimeError("model unavailable")
+
+
 class CaseServiceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.today = date(2026, 9, 15)
@@ -121,6 +126,37 @@ class CaseServiceTests(unittest.TestCase):
                 approval=mismatched,
                 request_id="req-2",
             )
+
+    def test_reply_failure_falls_back_and_is_audited(self) -> None:
+        audit_log = AppendOnlyAuditLog()
+        service = CaseService(
+            order_service=MockOrderService(
+                [
+                    Order(
+                        order_id="ORD-100",
+                        customer_id="customer-1",
+                        status=OrderStatus.DELIVERED,
+                        shipped_on=date(2026, 9, 7),
+                        delivered_on=date(2026, 9, 10),
+                    )
+                ]
+            ),
+            ticket_service=MockTicketService(),
+            audit_log=audit_log,
+            reply_generator=FailingReplyGenerator(),
+        )
+
+        decision = service.assess(self.request, request_id="req-model-failure", today=self.today)
+
+        self.assertEqual(decision.rule_id, "RETURN_WITHIN_WINDOW")
+        events = audit_log.events_for_case("CASE-100")
+        self.assertEqual(
+            [event.event_type for event in events][-3:],
+            ["reply_generation_failed", "reply_generated", "action_proposed"],
+        )
+        self.assertEqual(events[-3].payload["error_type"], "RuntimeError")
+        self.assertEqual(events[-3].payload["fallback_provider"], "template")
+        self.assertEqual(events[-2].payload["provider"], "template")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import unittest
 
 from fastapi.testclient import TestClient
@@ -29,8 +29,8 @@ class ApiTests(unittest.TestCase):
                         order_id="ORD-100",
                         customer_id="customer-1",
                         status=OrderStatus.DELIVERED.value,
-                        shipped_on=date(2026, 9, 7),
-                        delivered_on=date(2026, 9, 10),
+                        shipped_on=date.today() - timedelta(days=8),
+                        delivered_on=date.today() - timedelta(days=5),
                     ),
                     OrderRecord(
                         order_id="ORD-101",

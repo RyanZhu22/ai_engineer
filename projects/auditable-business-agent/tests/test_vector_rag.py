@@ -50,7 +50,7 @@ class VectorRagTests(unittest.TestCase):
         knowledge_base = VectorPolicyKnowledgeBase(store)
         directory = Path(__file__).parent.parent / "sample_data" / "policies"
 
-        self.assertEqual(knowledge_base.ingest(directory), 6)
+        self.assertEqual(knowledge_base.ingest(directory), 9)
         self.assertEqual(knowledge_base.ingest(directory), 0)
         result = knowledge_base.search(request_type=RequestType.RETURN, query="申请退货")
 
@@ -64,13 +64,13 @@ class VectorRagTests(unittest.TestCase):
         knowledge_base = VectorPolicyKnowledgeBase(store, id_prefix="bge_512_v2:")
         directory = Path(__file__).parent.parent / "sample_data" / "policies"
 
-        self.assertEqual(knowledge_base.ingest(directory), 6)
+        self.assertEqual(knowledge_base.ingest(directory), 9)
         self.assertTrue(all(document_id.startswith("bge_512_v2:") for document_id in store.documents))
         self.assertEqual(knowledge_base.ingest(directory), 0)
 
     def test_policy_documents_are_split_into_langchain_documents(self) -> None:
         chunks = _chunk_documents(Path(__file__).parent.parent / "sample_data" / "policies")
-        self.assertEqual(len(chunks), 6)
+        self.assertEqual(len(chunks), 9)
         self.assertTrue(all(document.id and document.metadata["version"] == "2026.09" for document in chunks))
 
 
